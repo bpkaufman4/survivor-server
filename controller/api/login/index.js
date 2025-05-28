@@ -24,7 +24,7 @@ router.post('/', (req, res) => {
           returnValue.status = 'success';
           returnValue.message = 'Success';
 
-          const token = jwt.sign({ id: user.userId }, process.env.JWT_SECRET, {
+          const token = jwt.sign({ id: user.userId, userType: user.userType }, process.env.JWT_SECRET, {
             expiresIn: '2 days'
           })
 
@@ -41,5 +41,8 @@ router.post('/', (req, res) => {
 
 const checkRoute = require('./check');
 router.use('/check', checkRoute);
+
+const checkAdminRoute = require('./checkAdmin');
+router.use('/checkAdmin', checkAdminRoute);
 
 module.exports = router;

@@ -8,6 +8,9 @@ router.use('/byLeague', byLeagueRoute);
 const byTeamRoute = require('./byTeam');
 router.use('/byTeam', byTeamRoute);
 
+const adminRoute = require('./admin');
+router.use('/admin', adminRoute);
+
 router.get('/:playerId', (req, res) => {
   const token = req.headers.authorization;
   jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {

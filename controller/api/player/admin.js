@@ -1,19 +1,19 @@
 const router = require('express').Router();
 const jwt = require('jsonwebtoken');
-const { League } = require('../../../models');
+const { Player, Tribe } = require('../../../models');
 
-router.get('/:leagueId', (req, res) => {
+router.get('/', (req, res) => {
+
   const token = req.headers.authorization;
 
   jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
-    if(decoded) {
-      League.findOne({
-        where: {
-          leagueId: req.params.leagueId
-        }
+    if(decoded && decoded.userType === 'ADMIN') {
+      Player.findAll({
+        where: {season: process.env.CURRENT_SEASON},
+        include: {model: Tribe, as: 'tribe'}
       })
-      .then(dbLeague => {
-        return dbLeague.get({plain: true})
+      .then(dbData => {
+        return dbData.map(player => player.get({plain: true}));
       })
       .then(data => {
         res.json({status: 'success', data});
@@ -22,7 +22,7 @@ router.get('/:leagueId', (req, res) => {
         res.json({status: 'fail', err});
       })
     } else {
-      res.json({status: 'fail', message: 'invalid token'});
+      res.json({status: 'fail', err});
     }
   })
 })

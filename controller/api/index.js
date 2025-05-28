@@ -12,4 +12,10 @@ router.use('/player', playerRoute);
 const episodeStatisticRoute = require('./episodeStatistic');
 router.use('/episodeStatistic', episodeStatisticRoute);
 
+const leagueRoute = require('./league');
+router.use('/league', leagueRoute);
+
+const adminNoteRoute = require('./adminNote');
+router.use('/adminNote', adminNoteRoute);
+
 module.exports = router;
