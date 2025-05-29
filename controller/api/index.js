@@ -18,4 +18,10 @@ router.use('/league', leagueRoute);
 const adminNoteRoute = require('./adminNote');
 router.use('/adminNote', adminNoteRoute);
 
+const tribeRoute = require('./tribe');
+router.use('/tribe', tribeRoute);
+
+const episodeRoute = require('./episode');
+router.use('/episode', episodeRoute);
+
 module.exports = router;

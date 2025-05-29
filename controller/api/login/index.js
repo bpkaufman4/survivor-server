@@ -13,7 +13,6 @@ router.post('/', (req, res) => {
       where: {username: request.username}
   })
   .then(reply => {
-      console.log(reply);
       if(!reply || !reply.checkPassword(request.pwd)) {
           returnValue.status = 'fail';
           returnValue.message = 'Invalid Login';
@@ -29,6 +28,8 @@ router.post('/', (req, res) => {
           })
 
           returnValue.token = token;
+          returnValue.target = user.userType === 'ADMIN' ? '/admin-episodes' : '/';
+          returnValue.userType = user.userType;
 
           res.json(returnValue);
       }
