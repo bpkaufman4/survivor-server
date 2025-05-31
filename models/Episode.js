@@ -20,17 +20,7 @@ Episode.init(
             type: DataTypes.DATE,
             allowNull: false
         },
-        title: DataTypes.STRING(500),
-        eliminationCount: {
-            type: DataTypes.INTEGER,
-            allowNull: false,
-            defaultValue: 1  
-        },
-        immunityCount: {
-            type: DataTypes.INTEGER,
-            allowNull: false,
-            defaultValue: 1  
-        }
+        title: DataTypes.STRING(500)
     },
     {
         paranoid: false,

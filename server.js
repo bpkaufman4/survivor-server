@@ -10,7 +10,6 @@ const models = require('./models')
 
 app.enable('trust proxy');
 app.use(cors());
-// app.use(nocache());
 
 process.env.TZ = "UTC";
 
@@ -23,8 +22,6 @@ if(!process.env.LOCAL_HOSTED) {
         res.redirect('https://'+req.hostname+req.originalUrl);
     });
 }
-
-// app.use(busboy());
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true}));
