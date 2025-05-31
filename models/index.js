@@ -8,6 +8,13 @@ const Statistic = require('../models/Statistic');
 const EpisodeStatistic = require('../models/EpisodeStatistic');
 const AdminNote = require('../models/AdminNote');
 const Tribe = require('./Tribe');
+const Survey = require('./Survey');
+const Question = require('./Question');
+const AnswerOption = require('./AnswerOption');
+const CorrectAnswer = require('./CorrectAnswer');
+const TeamSurvey = require('./TeamSurvey');
+const TeamQuestion = require('./TeamQuestion');
+const TeamAnswer = require('./TeamAnswer');
 
 League.hasMany(Team, {foreignKey: 'leagueId', as: 'teams', onDelete: 'CASCADE'});
 Team.belongsTo(League, {foreignKey: 'leagueId', as: 'league', onDelete: 'CASCADE'});
@@ -33,5 +40,22 @@ EpisodeStatistic.belongsTo(Statistic, {foreignKey: 'statisticId', as: 'statistic
 Player.belongsTo(Tribe, {foreignKey: 'tribeId', as: 'tribe', onDelete: 'CASCADE'});
 Tribe.hasMany(Player, {foreignKey: 'playerId', as: 'players', onDelete: 'CASCADE'});
 
+Survey.hasMany(Question, {foreignKey: 'surveyId', as: 'questions', onDelete: 'CASCADE'});
+Question.belongsTo(Survey, {foreignKey: 'surveyId', as: 'survey', onDelete: 'CASCADE'});
+Survey.hasMany(TeamSurvey, {foreignKey: 'surveyId', as: 'teamSurveys', onDelete: 'CASCADE'});
+TeamSurvey.belongsTo(Survey, {foreignKey: 'surveyId', as: 'survey', onDelete: 'CASCADE'});
 
-module.exports = { User, League, Tribe, Player, Team, PlayerTeam, Episode, Statistic, EpisodeStatistic, AdminNote };
+Question.hasMany(AnswerOption, {foreignKey: 'questionId', as: 'answerOptions', onDelete: 'CASCADE'});
+AnswerOption.belongsTo(Question, {foreignKey: 'questionId', as: 'question', onDelete: 'CASCADE'});
+
+Question.hasMany(CorrectAnswer, {foreignKey: 'questionId', as: 'correctAnswers', onDelete: 'CASCADE'});
+CorrectAnswer.belongsTo(Question, {foreignKey: 'questionId', as: 'question', onDelete: 'CASCADE'});
+
+Question.hasMany(TeamQuestion, {foreignKey: 'questionId', as: 'teamQuestions', onDelete: 'CASCADE'});
+TeamQuestion.belongsTo(Question, {foreignKey: 'questionId', as: 'question', onDelete: 'CASCADE'});
+
+TeamQuestion.hasMany(TeamAnswer, {foreignKey: 'teamQuestionId', as: 'teamAnswers', onDelete: 'CASCADE'});
+TeamAnswer.belongsTo(TeamQuestion, {foreignKey: 'teamQuestionId', as: 'teamQuestion', onDelete: 'CASCADE'});
+
+
+module.exports = { User, League, Tribe, Player, Team, PlayerTeam, Episode, Statistic, EpisodeStatistic, AdminNote, Survey, Question, AnswerOption, CorrectAnswer, TeamSurvey, TeamQuestion, TeamAnswer };
