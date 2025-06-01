@@ -1,12 +1,12 @@
-const User = require('../models/User');
-const League = require('../models/League');
-const Player = require('../models/Player');
-const Team = require('../models/Team');
-const PlayerTeam = require('../models/PlayerTeam');
-const Episode = require('../models/Episode');
-const Statistic = require('../models/Statistic');
-const EpisodeStatistic = require('../models/EpisodeStatistic');
-const AdminNote = require('../models/AdminNote');
+const User = require('./User');
+const League = require('./League');
+const Player = require('./Player');
+const Team = require('./Team');
+const PlayerTeam = require('./PlayerTeam');
+const Episode = require('./Episode');
+const Statistic = require('./Statistic');
+const EpisodeStatistic = require('./EpisodeStatistic');
+const AdminNote = require('./AdminNote');
 const Tribe = require('./Tribe');
 const Survey = require('./Survey');
 const Question = require('./Question');
@@ -39,6 +39,9 @@ EpisodeStatistic.belongsTo(Statistic, {foreignKey: 'statisticId', as: 'statistic
 
 Player.belongsTo(Tribe, {foreignKey: 'tribeId', as: 'tribe', onDelete: 'CASCADE'});
 Tribe.hasMany(Player, {foreignKey: 'playerId', as: 'players', onDelete: 'CASCADE'});
+
+Episode.hasOne(Survey, {foreignKey: 'episodeId', as: 'survey', onDelete: 'CASCADE'});
+Survey.belongsTo(Episode, {foreignKey: 'episodeId', as: 'episode', onDelete: 'CASCADE'});
 
 Survey.hasMany(Question, {foreignKey: 'surveyId', as: 'questions', onDelete: 'CASCADE'});
 Question.belongsTo(Survey, {foreignKey: 'surveyId', as: 'survey', onDelete: 'CASCADE'});

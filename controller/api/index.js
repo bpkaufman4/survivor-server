@@ -24,4 +24,7 @@ router.use('/tribe', tribeRoute);
 const episodeRoute = require('./episode');
 router.use('/episode', episodeRoute);
 
+const surveyRoute = require('./survey');
+router.use('/survey', surveyRoute);
+
 module.exports = router;

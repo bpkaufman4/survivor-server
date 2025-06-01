@@ -22,6 +22,10 @@ AnswerOption.init({
   answer: {
     type: DataTypes.STRING(100),
     allowNull: false
+  },
+  display: {
+    type: DataTypes.STRING(100),
+    allowNull: false
   }
 }, {
   paranoid: false,

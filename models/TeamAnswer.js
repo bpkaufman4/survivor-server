@@ -18,9 +18,13 @@ TeamAnswer.init({
       key: 'teamQuestionId'
     }
   },
-  answer: {
+  answerOptionId: {
     allowNull: false,
-    type: DataTypes.STRING(100)
+    type: DataTypes.UUID,
+    references: {
+      model: 'answerOption',
+      key: 'questionOptionId'
+    }
   }
 }, {
   sequelize,
