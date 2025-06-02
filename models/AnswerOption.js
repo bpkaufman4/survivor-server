@@ -26,6 +26,11 @@ AnswerOption.init({
   display: {
     type: DataTypes.STRING(100),
     allowNull: false
+  },
+  correct: {
+    type: DataTypes.BOOLEAN,
+    allowNull: false,
+    defaultValue: false
   }
 }, {
   paranoid: false,

@@ -11,7 +11,6 @@ const Tribe = require('./Tribe');
 const Survey = require('./Survey');
 const Question = require('./Question');
 const AnswerOption = require('./AnswerOption');
-const CorrectAnswer = require('./CorrectAnswer');
 const TeamSurvey = require('./TeamSurvey');
 const TeamQuestion = require('./TeamQuestion');
 const TeamAnswer = require('./TeamAnswer');
@@ -51,9 +50,6 @@ TeamSurvey.belongsTo(Survey, {foreignKey: 'surveyId', as: 'survey', onDelete: 'C
 Question.hasMany(AnswerOption, {foreignKey: 'questionId', as: 'answerOptions', onDelete: 'CASCADE'});
 AnswerOption.belongsTo(Question, {foreignKey: 'questionId', as: 'question', onDelete: 'CASCADE'});
 
-Question.hasMany(CorrectAnswer, {foreignKey: 'questionId', as: 'correctAnswers', onDelete: 'CASCADE'});
-CorrectAnswer.belongsTo(Question, {foreignKey: 'questionId', as: 'question', onDelete: 'CASCADE'});
-
 Question.hasMany(TeamQuestion, {foreignKey: 'questionId', as: 'teamQuestions', onDelete: 'CASCADE'});
 TeamQuestion.belongsTo(Question, {foreignKey: 'questionId', as: 'question', onDelete: 'CASCADE'});
 
@@ -61,4 +57,4 @@ TeamQuestion.hasMany(TeamAnswer, {foreignKey: 'teamQuestionId', as: 'teamAnswers
 TeamAnswer.belongsTo(TeamQuestion, {foreignKey: 'teamQuestionId', as: 'teamQuestion', onDelete: 'CASCADE'});
 
 
-module.exports = { User, League, Tribe, Player, Team, PlayerTeam, Episode, Statistic, EpisodeStatistic, AdminNote, Survey, Question, AnswerOption, CorrectAnswer, TeamSurvey, TeamQuestion, TeamAnswer };
+module.exports = { User, League, Tribe, Player, Team, PlayerTeam, Episode, Statistic, EpisodeStatistic, AdminNote, Survey, Question, AnswerOption, TeamSurvey, TeamQuestion, TeamAnswer };
