@@ -9,4 +9,7 @@ router.use('/latest', latestRoute);
 const submitRoute = require('./submit');
 router.use('/submit', submitRoute);
 
+const gradeRoute = require('./grade');
+router.use('/grade', gradeRoute);
+
 module.exports = router;
