@@ -10,12 +10,20 @@ TeamAnswer.init({
     type: DataTypes.UUID,
     defaultValue: DataTypes.UUIDV4
   },
-  teamQuestionId: {
+  questionId: {
     allowNull: false,
     type: DataTypes.UUID,
     references: {
-      model: 'teamquestion',
-      key: 'teamQuestionId'
+      model: 'question',
+      key: 'questionId'
+    }
+  },
+  teamSurveyId: {
+    allowNull: false,
+    type: DataTypes.UUID,
+    references: {
+      model: 'teamSurvey',
+      key: 'teamSurveyId'
     }
   },
   answerOptionId: {

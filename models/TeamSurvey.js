@@ -32,6 +32,12 @@ TeamSurvey.init({
     defaultValue: false
   }
 }, {
+  indexes: [
+    {
+      unique: true,
+      fields: ['surveyId', 'teamId']
+    }
+  ],
   sequelize,
   freezeTableName: true,
   paranoid: false,

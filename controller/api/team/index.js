@@ -1,9 +1,12 @@
 const router = require('express').Router();
 
-const myTeams = require('./myTeams');
-router.use('/myTeams', myTeams);
+const myTeamsRoute = require('./myTeams');
+router.use('/myTeams', myTeamsRoute);
 
-const byLeague = require('./byLeague');
-router.use('/byLeague', byLeague);
+const myTeamRoute = require('./myTeam');
+router.use('/myTeam', myTeamRoute);
+
+const byLeagueRoute = require('./byLeague');
+router.use('/byLeague', byLeagueRoute);
 
 module.exports = router;

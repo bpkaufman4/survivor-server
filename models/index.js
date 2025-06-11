@@ -12,7 +12,6 @@ const Survey = require('./Survey');
 const Question = require('./Question');
 const AnswerOption = require('./AnswerOption');
 const TeamSurvey = require('./TeamSurvey');
-const TeamQuestion = require('./TeamQuestion');
 const TeamAnswer = require('./TeamAnswer');
 
 League.hasMany(Team, {foreignKey: 'leagueId', as: 'teams', onDelete: 'CASCADE'});
@@ -36,6 +35,9 @@ EpisodeStatistic.belongsTo(Player, {foreignKey: 'playerId', as: 'player', onDele
 EpisodeStatistic.belongsTo(Episode, {foreignKey: 'episodeId', as: 'episode', onDelete: 'CASCADE'});
 EpisodeStatistic.belongsTo(Statistic, {foreignKey: 'statisticId', as: 'statistic', onDelete: 'CASCADE'});
 
+Episode.hasMany(Player, {foreignKey: 'eliminatedId', as: 'eliminations', onDelete: 'SET NULL'});
+Player.belongsTo(Episode, {foreignKey: 'eliminatedId', as: 'eliminatedEpisode', ondelete: 'SET NULL'});
+
 Player.belongsTo(Tribe, {foreignKey: 'tribeId', as: 'tribe', onDelete: 'CASCADE'});
 Tribe.hasMany(Player, {foreignKey: 'playerId', as: 'players', onDelete: 'CASCADE'});
 
@@ -50,11 +52,8 @@ TeamSurvey.belongsTo(Survey, {foreignKey: 'surveyId', as: 'survey', onDelete: 'C
 Question.hasMany(AnswerOption, {foreignKey: 'questionId', as: 'answerOptions', onDelete: 'CASCADE'});
 AnswerOption.belongsTo(Question, {foreignKey: 'questionId', as: 'question', onDelete: 'CASCADE'});
 
-Question.hasMany(TeamQuestion, {foreignKey: 'questionId', as: 'teamQuestions', onDelete: 'CASCADE'});
-TeamQuestion.belongsTo(Question, {foreignKey: 'questionId', as: 'question', onDelete: 'CASCADE'});
-
-TeamQuestion.hasMany(TeamAnswer, {foreignKey: 'teamQuestionId', as: 'teamAnswers', onDelete: 'CASCADE'});
-TeamAnswer.belongsTo(TeamQuestion, {foreignKey: 'teamQuestionId', as: 'teamQuestion', onDelete: 'CASCADE'});
+TeamSurvey.hasMany(TeamAnswer, {foreignKey: 'teamSurveyId', as: 'teamAnswers', onDelete: 'CASCADE'});
+TeamAnswer.belongsTo(TeamSurvey, {foreignKey: 'teamSurveyId', as: 'teamSurvey', onDelete: 'CASCADE'});
 
 
-module.exports = { User, League, Tribe, Player, Team, PlayerTeam, Episode, Statistic, EpisodeStatistic, AdminNote, Survey, Question, AnswerOption, TeamSurvey, TeamQuestion, TeamAnswer };
+module.exports = { User, League, Tribe, Player, Team, PlayerTeam, Episode, Statistic, EpisodeStatistic, AdminNote, Survey, Question, AnswerOption, TeamSurvey, TeamAnswer };

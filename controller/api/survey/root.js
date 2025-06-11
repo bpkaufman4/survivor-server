@@ -1,6 +1,6 @@
 const router = require('express').Router();
 const jwt = require('jsonwebtoken');
-const { Survey, Question } = require('../../../models');
+const { Survey, Question, Player, Tribe, AnswerOption } = require('../../../models');
 const { Op } = require('sequelize');
 
 router.get('/', (req, res) => {
@@ -78,8 +78,75 @@ router.post('/', (req, res) => {
           })
 
           Question.bulkCreate(questions)
-          .then(dbData => {
-            res.json({status: 'success', data: dbData.map(data => data.get({plain: true}))})
+          .then(async dbData => {
+              // create the question answer options
+
+            const needsAnswerOptions = dbData
+              .map(q => q.get({plain: true}));
+
+            const [allPlayers, allTribes] = await Promise.all([
+              Player.findAll({
+                where: {
+                  season: process.env.CURRENT_SEASON
+                },
+                raw: true
+              })
+              .then(dbData => {
+                return dbData;
+              }),
+              Tribe.findAll({
+                where: {
+                  season: process.env.CURRENT_SEASON
+                },
+                raw: true
+              })
+              .then(dbData => {
+                return dbData;
+              })
+            ])
+
+            const allAnswerOptions =[];
+
+            needsAnswerOptions.forEach(q => {
+              let options;
+
+              console.log(q);
+
+              if(q.type === 'players') {
+                options = allPlayers.map(p => ({
+                  questionId: q.questionId,
+                  display: `${p.firstName} ${p.lastName}`,
+                  answer: p.playerId
+                }))
+              } else if (q.type === 'tribes') {
+                options = allTribes.map(t => ({
+                  questionId: q.questionId,
+                  display: t.name,
+                  answer: t.tribeId
+                }))
+              } else {
+                options = [];
+              }
+
+              allAnswerOptions.push(...options);
+            })
+
+            let answerOptions = {};
+
+            if(allAnswerOptions.length > 0) {
+              AnswerOption.bulkCreate(allAnswerOptions, {returning: true})
+              .then(dbData => dbData.map(d => d.get({plain: true})))
+              .then(data => {
+                console.log(data);
+                res.json({status: 'success', data: answerOptions, dbData: data});
+              })
+              .catch(err => {
+                res.json({status: 'fail', err});
+              });
+            } else {
+              res.json({status: 'success', data: {answerOptions, dbData}})
+            }
+            
           })
         })
       } else {
@@ -93,25 +160,108 @@ router.post('/', (req, res) => {
         }));
 
         const incomingIds = body.questions
-          .filter(q => !isNaN(q.questionId))
+          .filter(q => isNaN(q.questionId))
           .map(q => q.questionId);
 
-        Question.destroy({
-          where: {
-            surveyId: body.surveyId,
-            ...(incomingIds.length > 0 && {
-              quetionId: {
-                [Op.notIn]: incomingIds
-              }
-            })
+        Survey.update(
+          {
+            episodeId: body.episodeId
+          },
+          {
+            where: {
+              surveyId: body.surveyId
+            }
           }
-        })
-        .then(() => {
-          Question.bulkCreate(cleanedQuestions, {
-            updateOnDuplicate: ['prompt', 'type', 'points', 'answerCount']
+        ).then(dbData => {
+          Question.destroy({
+            where: {
+              surveyId: body.surveyId,
+              ...(incomingIds.length > 0 && {
+                questionId: {
+                  [Op.notIn]: incomingIds
+                }
+              })
+            }
           })
-          .then(dbData => {
-            res.json({status: 'success', data: dbData});
+          .then(() => {
+            Question.bulkCreate(cleanedQuestions, {
+              updateOnDuplicate: ['prompt', 'type', 'points', 'answerCount'],
+              returning: true
+            })
+            .then(async dbData => {
+              // create the question answer options
+
+              const needsAnswerOptions = dbData
+                .map(q => q.get({plain: true}))
+                .filter(q => !incomingIds.includes(q.questionId));
+
+              const [allPlayers, allTribes] = await Promise.all([
+                Player.findAll({
+                  where: {
+                    season: process.env.CURRENT_SEASON
+                  },
+                  raw: true
+                })
+                .then(dbData => {
+                  return dbData;
+                }),
+                Tribe.findAll({
+                  where: {
+                    season: process.env.CURRENT_SEASON
+                  },
+                  raw: true
+                })
+                .then(dbData => {
+                  return dbData;
+                })
+              ])
+
+              const allAnswerOptions =[];
+
+              needsAnswerOptions.forEach(q => {
+                let options;
+
+                console.log(q);
+
+                if(q.type === 'players') {
+                  options = allPlayers.map(p => ({
+                    questionId: q.questionId,
+                    display: `${p.firstName} ${p.lastName}`,
+                    answer: p.playerId
+                  }))
+                } else if (q.type === 'tribes') {
+                  options = allTribes.map(t => ({
+                    questionId: q.questionId,
+                    display: t.name,
+                    answer: t.tribeId
+                  }))
+                } else {
+                  options = [];
+                }
+
+                allAnswerOptions.push(...options);
+              })
+
+              let answerOptions = {};
+
+              if(allAnswerOptions.length > 0) {
+                AnswerOption.bulkCreate(allAnswerOptions, {returning: true})
+                .then(dbData => dbData.map(d => d.get({plain: true})))
+                .then(data => {
+                  console.log(data);
+                  res.json({status: 'success', data: answerOptions, dbData: data});
+                })
+                .catch(err => {
+                  res.json({status: 'fail', err});
+                });
+              } else {
+                res.json({status: 'success', data: {answerOptions, dbData}})
+              }
+              
+            })
+            .catch(err => {
+              res.json({status: 'fail', err});
+            })
           })
           .catch(err => {
             res.json({status: 'fail', err});
@@ -120,10 +270,9 @@ router.post('/', (req, res) => {
         .catch(err => {
           res.json({status: 'fail', err});
         })
-
       }
     } else {
-      res.json({status: 'fail'});
+      res.json({status: 'fail', err});
     }
   })
 })
