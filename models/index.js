@@ -55,5 +55,11 @@ AnswerOption.belongsTo(Question, {foreignKey: 'questionId', as: 'question', onDe
 TeamSurvey.hasMany(TeamAnswer, {foreignKey: 'teamSurveyId', as: 'teamAnswers', onDelete: 'CASCADE'});
 TeamAnswer.belongsTo(TeamSurvey, {foreignKey: 'teamSurveyId', as: 'teamSurvey', onDelete: 'CASCADE'});
 
+AnswerOption.hasMany(TeamAnswer, {foreignKey: 'answerOptionId', as: 'teamAnswers', onDelete: 'CASCADE'});
+TeamAnswer.belongsTo(AnswerOption, {foreignKey: 'answerOptionId', as: 'answerOption', onDelete: 'CASCADE'});
+
+Question.hasMany(TeamAnswer, {foreignKey: 'questionId', as: 'teamAnswers', onDelete: 'CASCADE'});
+TeamAnswer.belongsTo(Question, {foreignKey: 'questionId', as: 'question', onDelete: 'CASCADE'});
+
 
 module.exports = { User, League, Tribe, Player, Team, PlayerTeam, Episode, Statistic, EpisodeStatistic, AdminNote, Survey, Question, AnswerOption, TeamSurvey, TeamAnswer };

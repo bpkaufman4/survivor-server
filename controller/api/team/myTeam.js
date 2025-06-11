@@ -24,6 +24,9 @@ router.get('/:leagueId', (req, res) => {
                     'totalPoints'
                   ]
                 ]
+              },
+              where: {
+                season: process.env.CURRENT_SEASON
               }
             },
           ],

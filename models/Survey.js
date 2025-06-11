@@ -18,6 +18,11 @@ Survey.init(
         model: 'episode',
         key: 'episodeId'
       }
+    },
+    graded: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false
     }
   },
   {

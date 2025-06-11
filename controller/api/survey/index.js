@@ -12,4 +12,7 @@ router.use('/submit', submitRoute);
 const gradeRoute = require('./grade');
 router.use('/grade', gradeRoute);
 
+const myPollsRoute = require('./myPolls');
+router.use('/myPolls', myPollsRoute);
+
 module.exports = router;

@@ -50,10 +50,11 @@ router.get('/:leagueId', (req, res) => {
           ],
           order: [['airDate', 'ASC']]
         })
-        .then(dbData => dbData.get({plain: true}))
-        .then(episodeData => {
-          console.log(episodeData);
+        .then(dbData => {
           
+          let episodeData = {}
+          
+          if(dbData) episodeData = dbData.get({plain: true});
           if(episodeData.survey) {
             TeamSurvey.findOne({
               where: {
@@ -75,15 +76,19 @@ router.get('/:leagueId', (req, res) => {
           }
         })
         .catch(err => {
+              console.log(err);
           res.json({status: 'fail', err});
         })
       })
       .catch(err => {
+              console.log(err);
         res.json({status: 'fail', err});
       })
     } else if(err) {
+              console.log(err);
       res.json({status: 'fail', err});
     } else {
+              console.log(err);
       res.json({status: 'fail', err: 'Error verifying token'});
     }
   })

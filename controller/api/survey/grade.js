@@ -1,6 +1,6 @@
 const router = require('express').Router();
 const jwt = require('jsonwebtoken');
-const { AnswerOption, Question } = require('../../../models');
+const { AnswerOption, Question, Survey } = require('../../../models');
 const { Op } = require('sequelize');
 
 router.post('/:surveyId', (req, res) => {
@@ -39,7 +39,19 @@ router.post('/:surveyId', (req, res) => {
             }
           })
           .then(reply => {
-            res.json({status: 'success', reply});
+            Survey.update({
+              graded: true
+            }, {
+              where: {
+                surveyId: req.params.surveyId
+              }
+            })
+            .then(reply => {
+              res.json({status: 'success', data: reply});
+            })
+            .catch(err => {
+              res.json({status: 'fail', err});
+            })
           })
           .catch(err => {
             res.json({status: 'fail', err});
