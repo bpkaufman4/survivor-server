@@ -15,7 +15,7 @@ router.get('/', (req, res) => {
         attributes: {
           include: [
             [sequelize.literal(`(SELECT COUNT(*) FROM question q WHERE q.surveyId = survey.surveyId)`), 'questionCount'],
-            [sequelize.literal(`(SELECT COUNT(*) FROM teamSurvey ts WHERE ts.surveyId = survey.surveyId)`), 'submissionCount']
+            [sequelize.literal(`(SELECT COUNT(*) FROM teamsurvey ts WHERE ts.surveyId = survey.surveyId)`), 'submissionCount']
           ]
         }
       })
