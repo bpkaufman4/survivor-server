@@ -36,8 +36,8 @@ router.get('/', (req, res) => {
                         SUM(q.points)
                     FROM answeroption ao
                     LEFT JOIN question q on q.questionId = ao.questionId
-                    INNER JOIN teamAnswer ta on ta.answerOptionId = ao.questionOptionId
-                    LEFT JOIN teamSurvey ts on ts.teamSurveyId = ta.teamSurveyId
+                    INNER JOIN teamanswer ta on ta.answerOptionId = ao.questionOptionId
+                    LEFT JOIN teamsurvey ts on ts.teamSurveyId = ta.teamSurveyId
                     LEFT JOIN survey s on ts.surveyId = s.surveyId
                     LEFT JOIN episode e on e.episodeId = s.episodeId
                     WHERE ao.correct = true
