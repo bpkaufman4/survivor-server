@@ -34,7 +34,7 @@ router.get('/', (req, res) => {
                 (
                     SELECT 
                         SUM(q.points)
-                    FROM answerOption ao
+                    FROM answeroption ao
                     LEFT JOIN question q on q.questionId = ao.questionId
                     INNER JOIN teamAnswer ta on ta.answerOptionId = ao.questionOptionId
                     LEFT JOIN teamSurvey ts on ts.teamSurveyId = ta.teamSurveyId
