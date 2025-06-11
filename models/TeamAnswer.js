@@ -22,7 +22,7 @@ TeamAnswer.init({
     allowNull: false,
     type: DataTypes.UUID,
     references: {
-      model: 'teamSurvey',
+      model: 'teamsurvey',
       key: 'teamSurveyId'
     }
   },
