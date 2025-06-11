@@ -30,7 +30,7 @@ TeamAnswer.init({
     allowNull: false,
     type: DataTypes.UUID,
     references: {
-      model: 'answerOption',
+      model: 'answeroption',
       key: 'questionOptionId'
     }
   }
