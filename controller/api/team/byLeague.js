@@ -29,7 +29,7 @@ router.get('/', (req, res) => {
                 t.teamId,
                 u.firstName,
                 u.lastName,
-                group_concat(concat(p.firstName, p.lastName, ' - ', cte.points)  SEPARATOR '<br>') as playersHTML,
+                group_concat(concat(p.firstName, ' ', p.lastName, ' - ', cte.points)  SEPARATOR '<br>') as playersHTML,
                 SUM(cte.points) as basePoints,
                 (
                     SELECT 
