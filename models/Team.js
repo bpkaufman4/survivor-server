@@ -30,11 +30,6 @@ Team.init(
                 model: 'league',
                 key: 'leagueId'
             }
-        },
-        bonus: {
-            type: DataTypes.INTEGER,
-            allowNull: false,
-            defaultValue: 0
         }
     },
     {

@@ -7,8 +7,6 @@ router.post('/', (req, res) => {
   const request = req.body;
   let returnValue = {};
 
-  console.log('login attempt', request);
-
   User.findOne({
       where: {username: request.username}
   })
