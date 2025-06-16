@@ -21,7 +21,8 @@ Player.init(
         },
         season: {
             type: DataTypes.INTEGER,
-            allowNull: false
+            allowNull: false,
+            defaultValue: process.env.CURRENT_SEASON
         },
         eliminatedId: {
             type: DataTypes.UUID,
@@ -31,6 +32,7 @@ Player.init(
                 key: 'episodeId'
             }
         },
+        bio: DataTypes.STRING(1000),
         photoUrl: DataTypes.STRING(255),
         tribeId: {
             type: DataTypes.UUID,

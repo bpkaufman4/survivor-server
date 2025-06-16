@@ -22,7 +22,7 @@ Tribe.init(
         }
     },
     {
-        paranoid: true,
+        paranoid: false,
         sequelize,
         freezeTableName: true,
         modelName: 'tribe'

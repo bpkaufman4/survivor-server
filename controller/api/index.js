@@ -27,4 +27,7 @@ router.use('/episode', episodeRoute);
 const surveyRoute = require('./survey');
 router.use('/survey', surveyRoute);
 
+const userRoute = require('./user');
+router.use('/user', userRoute);
+
 module.exports = router;

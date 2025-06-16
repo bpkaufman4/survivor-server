@@ -38,8 +38,8 @@ EpisodeStatistic.belongsTo(Statistic, {foreignKey: 'statisticId', as: 'statistic
 Episode.hasMany(Player, {foreignKey: 'eliminatedId', as: 'eliminations', onDelete: 'SET NULL'});
 Player.belongsTo(Episode, {foreignKey: 'eliminatedId', as: 'eliminatedEpisode', ondelete: 'SET NULL'});
 
-Player.belongsTo(Tribe, {foreignKey: 'tribeId', as: 'tribe', onDelete: 'CASCADE'});
-Tribe.hasMany(Player, {foreignKey: 'playerId', as: 'players', onDelete: 'CASCADE'});
+Player.belongsTo(Tribe, {foreignKey: 'tribeId', as: 'tribe', onDelete: 'SET NULL'});
+Tribe.hasMany(Player, {foreignKey: 'playerId', as: 'players', onDelete: 'SET NULL'});
 
 Episode.hasOne(Survey, {foreignKey: 'episodeId', as: 'survey', onDelete: 'CASCADE'});
 Survey.belongsTo(Episode, {foreignKey: 'episodeId', as: 'episode', onDelete: 'CASCADE'});

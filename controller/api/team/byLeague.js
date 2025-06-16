@@ -10,58 +10,47 @@ router.get('/', (req, res) => {
   
   jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
     if(decoded) {
-        const playersHTML = `(
-                    select 
-                         
-                    from playerTeam pt1 
-                    left join player p1 on pt1.playerId = p1.playerId and p1.season = ${process.env.CURRENT_SEASON} 
-                    where pt1.teamId = t.teamId
-                ) as playersHTML`
-
-        const columns = `,;`
 
       sequelize.query(
-        `SELECT *, (cte2.basePoints + cte2.bonus) totalPoints 
+        `SELECT 
+            *,
+            (cte2.basePoints + cte2.bonus) AS totalPoints
         FROM (
-            SELECT 
+            SELECT
                 t.name,
                 t.ownerId,
                 t.teamId,
                 u.firstName,
                 u.lastName,
-                group_concat(concat(p.firstName, ' ', p.lastName, ' - ', cte.points)  SEPARATOR '<br>') as playersHTML,
-                SUM(cte.points) as basePoints,
+                COALESCE(GROUP_CONCAT(CONCAT(p.firstName, ' ', p.lastName, ' - ', COALESCE(cte.points, 0)) SEPARATOR '<br>'), '') AS playersHTML,
+                COALESCE(SUM(cte.points), 0) AS basePoints,
                 (
-                    SELECT 
-                        SUM(q.points)
+                    SELECT COALESCE(SUM(q.points), 0)
                     FROM answeroption ao
-                    LEFT JOIN question q on q.questionId = ao.questionId
-                    INNER JOIN teamanswer ta on ta.answerOptionId = ao.questionOptionId
-                    LEFT JOIN teamsurvey ts on ts.teamSurveyId = ta.teamSurveyId
-                    LEFT JOIN survey s on ts.surveyId = s.surveyId
-                    LEFT JOIN episode e on e.episodeId = s.episodeId
-                    WHERE ao.correct = true
-                        AND ts.teamId = t.teamId
-                        AND e.season = ${process.env.CURRENT_SEASON}
-                ) bonus
-            FROM (
+                    LEFT JOIN question q ON q.questionId = ao.questionId
+                    INNER JOIN teamanswer ta ON ta.answerOptionId = ao.questionOptionId
+                    LEFT JOIN teamsurvey ts ON ts.teamSurveyId = ta.teamSurveyId
+                    LEFT JOIN survey s ON ts.surveyId = s.surveyId
+                    LEFT JOIN episode e ON e.episodeId = s.episodeId
+                    WHERE ao.correct = TRUE
+                      AND ts.teamId = t.teamId
+                      AND e.season = ${process.env.CURRENT_SEASON}
+                ) AS bonus
+            FROM team t
+            LEFT JOIN user u ON u.userId = t.ownerId
+            LEFT JOIN playerTeam pt ON pt.teamId = t.teamId
+            LEFT JOIN player p ON p.playerId = pt.playerId AND p.season = ${process.env.CURRENT_SEASON}
+            LEFT JOIN (
                 SELECT
                     es.playerId,
-                    SUM(es.points) AS points,
-                    pt.teamId
+                    SUM(es.points) AS points
                 FROM episodeStatistic es
-                LEFT JOIN playerTeam pt on es.playerId = pt.playerId
-                LEFT JOIN team t ON t.teamId = pt.teamId
-                WHERE t.leagueId = '${req.query.leagueId}'
-                GROUP BY es.playerId, pt.teamId
-            ) cte
-            LEFT JOIN player p ON p.playerId = cte.playerId
-            LEFT JOIN team t on cte.teamId = t.teamId
-            LEFT JOIN user u on u.userId = t.ownerId
-            WHERE p.season = ${process.env.CURRENT_SEASON}
-            GROUP BY cte.teamId
+                GROUP BY es.playerId
+            ) cte ON pt.playerId = cte.playerId
+            WHERE t.leagueId = '${req.query.leagueId}'
+            GROUP BY t.teamId
         ) cte2
-        ORDER BY totalPoints DESC`,
+        ORDER BY totalPoints DESC;`,
         {type: QueryTypes.SELECT}
       )
       .then(data => {

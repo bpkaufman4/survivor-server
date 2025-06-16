@@ -5,3 +5,6 @@ public
 .env
 .env*
 .env.*
+seeders/
+seedDb.js
+data

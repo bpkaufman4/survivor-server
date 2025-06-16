@@ -27,7 +27,9 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true}));
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(controller);
+
 const alter = process.env.SYNC_DB_ALTER === 'true';
+
 sequelize.sync({force: false, alter}).then(() => {
     app.listen(PORT, () => {
         console.log(`listening on port ${PORT}`);
