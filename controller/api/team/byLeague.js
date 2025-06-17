@@ -1,5 +1,4 @@
 const jwt = require('jsonwebtoken');
-const { Team } = require('../../../models');
 const sequelize = require('../../../config/connection');
 const { QueryTypes } = require('sequelize');
 const router = require('express').Router();
