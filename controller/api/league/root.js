@@ -1,6 +1,6 @@
 const router = require('express').Router();
 const jwt = require('jsonwebtoken');
-const { League, Team } = require('../../../models');
+const { League, Team, User } = require('../../../models');
 const sequelize = require('../../../config/connection');
 
 router.get('/:leagueId', (req, res) => {
@@ -35,10 +35,16 @@ router.get('/', (req, res) => {
     if(decoded) {
       League.findAll({
         order: [['createdAt', 'DESC']],
-        include: {
-          model: Team,
-          as: 'teams'
-        },
+        include: [
+          {
+            model: Team,
+            as: 'teams'
+          },
+          {
+            model: User,
+            as: 'owner'
+          }
+        ],
         attributes: {
           include: [
             [sequelize.literal(`COUNT(teams.leagueId)`), 'teamsCount']

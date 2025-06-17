@@ -6,7 +6,7 @@ router.get('/', (req, res) => {
   const token = req.headers.authorization;
 
   jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
-    if(decoded && decoded.userType === 'ADMIN') {
+    if(decoded) {
       AdminNote.findAll({order: [[`createdAt`, 'DESC']]})  
       .then(dbData => {
         return dbData.map(note => note.get({plain: true}));
