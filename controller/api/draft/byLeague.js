@@ -1,6 +1,6 @@
 const router = require('express').Router();
 const jwt = require('jsonwebtoken');
-const { Draft } = require('../../../models');
+const { Draft, DraftOrder, DraftPick, Team } = require('../../../models');
 
 router.get('/:leagueId', (req, res) => {
   const token = req.headers.authorization;
@@ -11,7 +11,30 @@ router.get('/:leagueId', (req, res) => {
         where: {
           leagueId: req.params.leagueId
         },
-        include: ['draftOrder', 'draftPicks']
+        include: [
+          {
+            model: DraftOrder,
+            as: 'draftOrder',
+            include: {
+              model: Team,
+              as: 'team',
+              include: ['owner']
+            }
+          },
+          {
+            model: DraftPick,
+            as: 'draftPicks',
+            include: {
+              model: Team,
+              as: 'team',
+              include: ['owner']
+            }
+          }
+        ],
+        order: [
+          ['draftOrder', 'pickNumber', 'ASC'],
+          ['draftPicks', 'pickNumber', 'ASC']
+        ]
       })
         .then(dbData => {
           if (dbData) {

@@ -64,6 +64,38 @@ router.get('/', (req, res) => {
       res.json({status: 'fail', err});
     }
   })
+});
+
+router.patch('/:leagueId', (req, res) => {
+  const token = req.headers.authorization;
+  const body = req.body;
+
+  jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
+    try {
+      if (decoded) {
+        console.log(req.params.leagueId, body);
+        let where = {leagueId: req.params.leagueId};
+        if(decoded.userType !== 'ADMIN') where.ownerId = decoded.id;
+        League.update(body, {where})
+          .then(data => {
+            if (data) {
+              res.json({ status: 'success', data });
+            } else {
+              throw new Error(JSON.stringify(data));
+            }
+          })
+          .catch(err => {
+            throw new Error(err);
+          })
+      } else if (err) {
+        throw new Error(err);
+      } else {
+        throw new Error("JWT error");
+      }
+    } catch (err) {
+      res.json({status: 'fail', err})
+    }
+  })
 })
 
 module.exports = router;

@@ -32,6 +32,11 @@ Draft.init(
       type: DataTypes.INTEGER,
       allowNull: false,
       defaultValue: 1
+    },
+    complete: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false
     }
   },
   {

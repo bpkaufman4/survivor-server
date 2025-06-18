@@ -7,6 +7,8 @@ const PORT = process.env.PORT || 3001;
 const path = require('path');
 const cors = require('cors');
 const models = require('./models')
+const http = require('http');
+const { setupWebSocket } = require('./websocket');
 
 app.enable('trust proxy');
 app.use(cors());
@@ -28,10 +30,15 @@ app.use(express.urlencoded({ extended: true}));
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(controller);
 
+
+const server = http.createServer(app);
+
+setupWebSocket(server);
+
 const alter = process.env.SYNC_DB_ALTER === 'true';
 
 sequelize.sync({force: false, alter}).then(() => {
-    app.listen(PORT, () => {
+    server.listen(PORT, () => {
         console.log(`listening on port ${PORT}`);
     });
 });
