@@ -37,6 +37,11 @@ Draft.init(
       type: DataTypes.BOOLEAN,
       allowNull: false,
       defaultValue: false
+    },
+    pickTimeSeconds: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      defaultValue: 120 // Default to 2 minutes
     }
   },
   {

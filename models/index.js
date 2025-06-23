@@ -64,7 +64,7 @@ TeamAnswer.belongsTo(AnswerOption, {foreignKey: 'answerOptionId', as: 'answerOpt
 Question.hasMany(TeamAnswer, {foreignKey: 'questionId', as: 'teamAnswers', onDelete: 'CASCADE'});
 TeamAnswer.belongsTo(Question, {foreignKey: 'questionId', as: 'question', onDelete: 'CASCADE'});
 
-League.hasMany(Draft, {foreignKey: 'leagueId', as: 'draft', onDelete: 'CASCADE'});
+League.hasMany(Draft, {foreignKey: 'leagueId', as: 'drafts', onDelete: 'CASCADE'});
 Draft.belongsTo(League, {foreignKey: 'leagueId', as: 'league', onDelete: 'CASCADE'});
 
 Draft.hasMany(DraftOrder, {foreignKey: 'draftId', as: 'draftOrder', onDelete: 'CASCADE'});

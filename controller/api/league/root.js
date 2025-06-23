@@ -1,6 +1,6 @@
 const router = require('express').Router();
 const jwt = require('jsonwebtoken');
-const { League, Team, User } = require('../../../models');
+const { League, Team, User, Draft } = require('../../../models');
 const sequelize = require('../../../config/connection');
 
 router.get('/:leagueId', (req, res) => {
@@ -11,15 +11,28 @@ router.get('/:leagueId', (req, res) => {
       League.findOne({
         where: {
           leagueId: req.params.leagueId
-        }
+        },
+        include: [
+          {
+            model: Draft,
+            as: 'drafts',
+            on: {
+              season: process.env.CURRENT_SEASON,
+              leagueId: req.params.leagueId,
+              complete: false
+            }
+          }
+        ]
       })
       .then(dbLeague => {
-        return dbLeague.get({plain: true})
+        if(dbLeague) return dbLeague.get({plain: true});
+        return {};
       })
       .then(data => {
         res.json({status: 'success', data});
       })
       .catch(err => {
+        console.log(err);
         res.json({status: 'fail', err});
       })
     } else {

@@ -30,8 +30,7 @@ League.init(
         },
         password: {
             type: DataTypes.STRING,
-        },
-        draftDate: DataTypes.DATE
+        }
     },
     {
         paranoid: false,
