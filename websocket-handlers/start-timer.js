@@ -1,13 +1,11 @@
 const jwt = require('jsonwebtoken');
 const { liveDraftData } = require('./helpers');
 
-module.exports = async function handleStartTimer({ ws, payload, startDraftTimer, broadcastToLeague }) {
+module.exports = async function handleStartTimer({ ws, payload, startDraftTimer }) {
   const { token, timeoutMs } = payload;
 
-  // Verify admin token (you might want to add admin verification here)
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    // Add admin check if needed: if (!decoded.isAdmin) throw new Error("Not admin");
   } catch (err) {
     console.warn("Invalid token on start timer");
     ws.send(JSON.stringify({ type: 'error', message: 'unauthorized' }));

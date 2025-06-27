@@ -35,8 +35,6 @@ module.exports = async function handlePick({ ws, payload, broadcastToLeague, cle
   if(!auto) {
     try {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      
-      // Use the team information from the pick object instead of ws.myTeam
       const pickTeamOwnerId = pick?.team?.ownerId;
       
       // Check if the user making the pick is the owner of the team for this pick
@@ -49,7 +47,6 @@ module.exports = async function handlePick({ ws, payload, broadcastToLeague, cle
       return;
     }
   }  try {
-    // Use the team ID from the pick object, not from ws.myTeam
     const teamId = pick.teamId || pick.team?.teamId;
     
     await PlayerTeam.create({playerId: player.playerId, teamId: teamId});

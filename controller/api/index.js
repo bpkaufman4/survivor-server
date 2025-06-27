@@ -33,4 +33,10 @@ router.use('/user', userRoute);
 const draftRoute = require('./draft');
 router.use('/draft', draftRoute);
 
+const uploadImageRoute = require('./uploadImage');
+router.use('/uploadImage', uploadImageRoute);
+
+const playersRoute = require('./players');
+router.use('/players', playersRoute);
+
 module.exports = router;

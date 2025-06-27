@@ -64,7 +64,7 @@ router.post('/', (req, res) => {
   jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
     if(decoded && decoded.userType === 'ADMIN') {
       if(!player.playerId) {
-        Player.create(body)
+        Player.create(player)
         .then(data => {
           res.json({status: 'success', data})
         })

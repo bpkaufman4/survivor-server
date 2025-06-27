@@ -9,9 +9,13 @@ const cors = require('cors');
 const models = require('./models')
 const http = require('http');
 const { setupWebSocket } = require('./websocket');
+const busboy = require('connect-busboy');
 
 app.enable('trust proxy');
+
 app.use(cors());
+
+app.use(busboy());
 
 process.env.TZ = "UTC";
 
