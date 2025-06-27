@@ -8,11 +8,19 @@ router.post('/:leagueId', (req, res) => {
     const body = req.body;
 
     jwt.verify(token, process.env.JWT_SECRET, async (err, decoded) => {
-      if (decoded) {
+      if (decoded) {        await Draft.destroy({ where: { leagueId: req.params.leagueId } });
 
-        await Draft.destroy({ where: { leagueId: req.params.leagueId } });
+        const draftData = { 
+          leagueId: req.params.leagueId, 
+          startDate: body.draftDate 
+        };
+        
+        // Add pickTimeSeconds if provided, otherwise use default
+        if (body.pickTimeSeconds !== undefined) {
+          draftData.pickTimeSeconds = body.pickTimeSeconds;
+        }
 
-        const draft = await Draft.create({ leagueId: req.params.leagueId, startDate: body.draftDate });
+        const draft = await Draft.create(draftData);
         const draftPlain = draft.get({ plain: true });
 
         const order = body.draftOrder.map((id, i) => ({ draftId: draftPlain.draftId, teamId: id, pickNumber: (i + 1) }));

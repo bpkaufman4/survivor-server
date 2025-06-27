@@ -7,8 +7,7 @@ async function liveDraftData(leagueId) {
 
     const league = await League.findByPk(leagueId);
     const teams = await Team.findAll({ where: { leagueId } });
-    const players = await Player.findAll({ where: { season }, order: [['firstName', 'ASC']]});
-    const draft = await Draft.findOne({ where: { leagueId, season } }).then(dbData => dbData.get({plain: true}));
+    const players = await Player.findAll({ where: { season }, order: [['firstName', 'ASC']]});    const draft = await Draft.findOne({ where: { leagueId, season } }).then(dbData => dbData.get({plain: true}));
     const draftOrder = await DraftPick.findAll({
       where: { draftId: draft.draftId },
       order: [['pickNumber', 'ASC']],

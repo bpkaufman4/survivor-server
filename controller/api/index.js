@@ -30,6 +30,9 @@ router.use('/survey', surveyRoute);
 const userRoute = require('./user');
 router.use('/user', userRoute);
 
+const statisticRoute = require('./statistic');
+router.use('/statistic', statisticRoute);
+
 const draftRoute = require('./draft');
 router.use('/draft', draftRoute);
 

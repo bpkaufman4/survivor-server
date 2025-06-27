@@ -1,6 +1,7 @@
 const jwt = require('jsonwebtoken');
 const sequelize = require('../../../config/connection');
 const { QueryTypes } = require('sequelize');
+const { Team } = require('../../../models');
 const router = require('express').Router();
 
 router.get('/', (req, res) => {
@@ -64,6 +65,33 @@ router.get('/', (req, res) => {
       res.json({status: 'fail', err});
     }
   })
-})
+});
 
+router.get('/:leagueId', (req, res) => {
+  const token = req.headers.authorization; 
+
+  jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
+    if(decoded) {
+      try {
+        Team.findAll({
+          where: {
+            leagueId: req.params.leagueId
+          },
+          include: [
+            {
+              model: User,
+              as: 'owner'
+            }
+          ],
+          order: [['createdAt', 'DESC']]
+        })
+      } catch (err) {
+        console.log(err);
+        return res.json({status: 'fail', err});
+      }
+    } else {
+      return res.json({status: 'fail', message: 'invalid token'});
+    }
+  });
+});
 module.exports = router;

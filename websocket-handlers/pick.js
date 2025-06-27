@@ -77,9 +77,7 @@ module.exports = async function handlePick({ ws, payload, broadcastToLeague, cle
     var draftData = await liveDraftData(ws.leagueId);
 
     broadcastToLeague(ws.leagueId, { type: 'pick-made', payload: draftData });    // Check if there's a next pick and start timer
-    const nextPickObj = draftData.draftOrder.find(pickItem => pickItem.dataValues.currentPick);
-    
-    if (nextPickObj && !nextPickObj.playerId && !draftData.draft.complete) {
+    const nextPickObj = draftData.draftOrder.find(pickItem => pickItem.dataValues.currentPick);    if (nextPickObj && !nextPickObj.playerId && !draftData.draft.complete) {
       // Start timer for next pick using draft settings
       const timerMs = (draftData.draft.pickTimeSeconds || 120) * 1000; // Convert to milliseconds
       startDraftTimer(ws.leagueId, timerMs);

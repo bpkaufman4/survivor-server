@@ -119,98 +119,114 @@ function getTimerInfo(leagueId) {
   return { startTime: timer.startTime, timeoutMs: timer.timeoutMs };
 }
 
-function startDraftTimer(leagueId, timeoutMs = 120000) { // Default 2 minutes
+function startDraftTimer(leagueId, timeoutMs) {
   // Clear any existing timer for this league
   clearDraftTimer(leagueId);
 
-  const startTime = Date.now();
-  const timeout = setTimeout(async () => {
-    console.log(`Draft timer expired for league ${leagueId}, making auto pick`);
+  // If no timeout provided, fetch from draft settings
+  const getTimeoutMs = async () => {
+    if (timeoutMs) return timeoutMs;
     
     try {
-      // Import the handler and helper here to avoid circular dependency
-      const { liveDraftData } = require('./websocket-handlers/helpers');
-      const handlePick = require('./websocket-handlers/pick');
-      
-      // Get current draft state
-      const draftData = await liveDraftData(leagueId);
-      const currentPickObj = draftData.draftOrder.find(pick => pick.dataValues.currentPick);
-      
-      if (!currentPickObj || currentPickObj.playerId) {
-        console.log('No current pick found or pick already made');
-        return;
-      }
-      
-      // Select a random available player
-      const availablePlayers = draftData.availablePlayers;
-      if (availablePlayers.length === 0) {
-        console.log('No available players for auto pick');        
-        return;
-      }
-      
-      const randomPlayer = availablePlayers[Math.floor(Math.random() * availablePlayers.length)];
-      console.log(`Auto-picking player: ${randomPlayer.firstName} ${randomPlayer.lastName}`);
-        // Find a client for this league to use for the auto pick
-      const clients = clientsByLeague.get(leagueId);
-      let ws;
-      
-      if (clients && clients.size > 0) {
-        // Use an existing client if available
-        ws = Array.from(clients)[0];
-      } else {
-        // Create a mock websocket object if no clients are connected
-        console.log('No clients connected, creating mock websocket for auto pick');
-        ws = {
-          send: () => {}, // Mock send function
-          leagueId: leagueId
-        };
-      }
-      
-      ws.leagueId = leagueId;
-      ws.myTeam = {
-        teamId: currentPickObj.teamId,
-        ownerId: currentPickObj.team?.ownerId || currentPickObj.team?.owner?.userId
-      };
-      
-      // Make the auto pick
-      await handlePick({
-        ws,
-        payload: {
-          pick: currentPickObj,
-          player: randomPlayer,
-          auto: true
-        },
-        broadcastToLeague,
-        clearDraftTimer,
-        startDraftTimer,        
-        clientsByLeague
+      const { Draft } = require('./models');
+      const draft = await Draft.findOne({ 
+        where: { leagueId, season: process.env.CURRENT_SEASON } 
       });
+      return draft ? (draft.pickTimeSeconds * 1000) : 120000; // Fallback to 2 minutes
+    } catch (err) {
+      console.error('Error fetching draft timeout:', err);
+      return 120000; // Fallback to 2 minutes
+    }
+  };  getTimeoutMs().then(finalTimeoutMs => {
+    const startTime = Date.now();
+    const timeout = setTimeout(async () => {
+      console.log(`Draft timer expired for league ${leagueId}, making auto pick`);
       
-      // Broadcast that an auto pick was made
-      broadcastToLeague(leagueId, {
-        type: 'auto-pick-made',
-        payload: {
-          player: randomPlayer,
-          team: currentPickObj.team,
-          pickNumber: currentPickObj.pickNumber
+      try {
+        // Import the handler and helper here to avoid circular dependency
+        const { liveDraftData } = require('./websocket-handlers/helpers');
+        const handlePick = require('./websocket-handlers/pick');
+        
+        // Get current draft state
+        const draftData = await liveDraftData(leagueId);
+        const currentPickObj = draftData.draftOrder.find(pick => pick.dataValues.currentPick);
+        
+        if (!currentPickObj || currentPickObj.playerId) {
+          console.log('No current pick found or pick already made');
+          return;
         }
-      });      
-    } catch (error) {
-      console.error('Error making auto pick:', error);
-      // Only delete timer on error, otherwise handlePick manages the timer
-      draftTimers.delete(leagueId);
-    }
-  }, timeoutMs);
-  
-  draftTimers.set(leagueId, { timeout, startTime, timeoutMs });
+        
+        // Select a random available player
+        const availablePlayers = draftData.availablePlayers;
+        if (availablePlayers.length === 0) {
+          console.log('No available players for auto pick');        
+          return;
+        }
+        
+        const randomPlayer = availablePlayers[Math.floor(Math.random() * availablePlayers.length)];
+        console.log(`Auto-picking player: ${randomPlayer.firstName} ${randomPlayer.lastName}`);
+          // Find a client for this league to use for the auto pick
+        const clients = clientsByLeague.get(leagueId);
+        let ws;
+        
+        if (clients && clients.size > 0) {
+          // Use an existing client if available
+          ws = Array.from(clients)[0];
+        } else {
+          // Create a mock websocket object if no clients are connected
+          console.log('No clients connected, creating mock websocket for auto pick');
+          ws = {
+            send: () => {}, // Mock send function
+            leagueId: leagueId
+          };
+        }
+        
+        ws.leagueId = leagueId;
+        ws.myTeam = {
+          teamId: currentPickObj.teamId,
+          ownerId: currentPickObj.team?.ownerId || currentPickObj.team?.owner?.userId
+        };
+        
+        // Make the auto pick
+        await handlePick({
+          ws,
+          payload: {
+            pick: currentPickObj,
+            player: randomPlayer,
+            auto: true
+          },
+          broadcastToLeague,
+          clearDraftTimer,
+          startDraftTimer,        
+          clientsByLeague
+        });
+        
+        // Broadcast that an auto pick was made
+        broadcastToLeague(leagueId, {
+          type: 'auto-pick-made',
+          payload: {
+            player: randomPlayer,
+            team: currentPickObj.team,
+            pickNumber: currentPickObj.pickNumber
+          }
+        });      
+      } catch (error) {
+        console.error('Error making auto pick:', error);
+        // Only delete timer on error, otherwise handlePick manages the timer
+        draftTimers.delete(leagueId);
+      }
+    }, finalTimeoutMs);
+    
+    draftTimers.set(leagueId, { timeout, startTime, timeoutMs: finalTimeoutMs });
 
-  // Broadcast timer started to all clients
-  broadcastToLeague(leagueId, {
-    type: 'draft-timer-started',
-    payload: {
-      timeoutMs,
-      startTime
-    }
+    // Broadcast timer started to all clients
+    broadcastToLeague(leagueId, {
+      type: 'draft-timer-started',
+      payload: {
+        timeoutMs: finalTimeoutMs,
+        startTime
+      }
+    });
   });
 }
 

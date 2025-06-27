@@ -114,8 +114,14 @@ router.post('/', (req, res) => {
 
               console.log(q);
 
-              if(q.type === 'players') {
+              if(q.type === 'all-players') {
                 options = allPlayers.map(p => ({
+                  questionId: q.questionId,
+                  display: `${p.firstName} ${p.lastName}`,
+                  answer: p.playerId
+                }))
+              } else if(q.type === 'remaining-players') {
+                options = allPlayers.filter(p => p.eliminatedId === null).map(p => ({
                   questionId: q.questionId,
                   display: `${p.firstName} ${p.lastName}`,
                   answer: p.playerId
@@ -222,11 +228,15 @@ router.post('/', (req, res) => {
 
               needsAnswerOptions.forEach(q => {
                 let options;
-
-                console.log(q);
-
-                if(q.type === 'players') {
+                
+                if(q.type === 'all-players') {
                   options = allPlayers.map(p => ({
+                    questionId: q.questionId,
+                    display: `${p.firstName} ${p.lastName}`,
+                    answer: p.playerId
+                  }))
+                } else if(q.type === 'remaining-players') {
+                  options = allPlayers.filter(p => p.eliminatedId === null).map(p => ({
                     questionId: q.questionId,
                     display: `${p.firstName} ${p.lastName}`,
                     answer: p.playerId

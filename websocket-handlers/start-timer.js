@@ -22,9 +22,7 @@ module.exports = async function handleStartTimer({ ws, payload, startDraftTimer 
         message: 'No current pick available or draft is complete' 
       }));
       return;
-    }
-
-    // Use provided timeoutMs or default to draft setting
+    }    // Use provided timeoutMs or default to draft setting
     const finalTimeoutMs = timeoutMs || (draftData.draft.pickTimeSeconds * 1000);
     
     // Start the timer
