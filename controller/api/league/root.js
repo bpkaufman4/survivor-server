@@ -82,6 +82,15 @@ router.get('/', (req, res) => {
           {
             model: User,
             as: 'owner'
+          },
+          {
+            model: Draft,
+            as: 'drafts',
+            where: {
+              season: process.env.CURRENT_SEASON,
+              complete: false
+            },
+            required: false
           }
         ],
         attributes: {
@@ -90,7 +99,12 @@ router.get('/', (req, res) => {
           ]
         }
       })
-      .then(dbLeague => dbLeague.map(l => l.get({plain: true})))
+      .then(dbLeague => dbLeague.map(l => {
+        const league = l.get({plain: true});
+        // Add draft date from the first draft if it exists
+        league.draftDate = league.drafts && league.drafts.length > 0 ? league.drafts[0].startDate : null;
+        return league;
+      }))
       .then(data => {
         res.json({status: 'success', data});
       })
