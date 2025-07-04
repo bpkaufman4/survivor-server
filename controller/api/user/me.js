@@ -11,7 +11,7 @@ router.get('/', (req, res) => {
         where: {
           userId: decoded.id
         },
-        attributes: ['firstName', 'lastName', 'userId']
+        attributes: ['firstName', 'lastName', 'userId', 'email', 'emailVerified', 'emailOptIn', 'emailPreferences']
       })
       .then(dbData => {
         const data = dbData.get({plain: true});

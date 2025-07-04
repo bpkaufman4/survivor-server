@@ -6,7 +6,6 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 const path = require('path');
 const cors = require('cors');
-const models = require('./models')
 const http = require('http');
 const { setupWebSocket } = require('./websocket');
 const busboy = require('connect-busboy');

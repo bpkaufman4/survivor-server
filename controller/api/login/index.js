@@ -1,4 +1,5 @@
 const { User } = require('../../../models');
+const { Op } = require('sequelize');
 
 const jwt = require('jsonwebtoken');
 const router = require('express').Router();
@@ -7,13 +8,19 @@ router.post('/', (req, res) => {
   const request = req.body;
   let returnValue = {};
 
+  // Allow login with either username or email
   User.findOne({
-      where: {username: request.username}
+      where: {
+        [Op.or]: [
+          { username: request.username },
+          { email: request.username } // Use username field for both username and email input
+        ]
+      }
   })
   .then(reply => {
       if(!reply || !reply.checkPassword(request.pwd)) {
           returnValue.status = 'fail';
-          returnValue.message = 'Invalid Login';
+          returnValue.message = 'Invalid username/email or password';
           res.json(returnValue);
       } else {
           const user = reply.get({plain: true});

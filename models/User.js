@@ -8,6 +8,10 @@ class User extends Model {
     checkPassword(loginPw) {
         return bcrypt.compareSync(loginPw, this.pwd);
     }
+
+    checkVerificationCode(code) {
+        return this.verificationCode === code;
+    }
 };
 
 
@@ -38,6 +42,38 @@ User.init(
             type: DataTypes.STRING,
             allowNull: false,
         },
+        email: {
+            type: DataTypes.STRING,
+            allowNull: true, // Allow null for existing users
+            validate: {
+                isEmail: {
+                    msg: 'Must be a valid email address'
+                }
+            }
+        },
+        emailVerified: {
+            type: DataTypes.BOOLEAN,
+            allowNull: false,
+            defaultValue: false
+        },
+        verificationCode: {
+            type: DataTypes.INTEGER,
+            defaultValue: Math.floor(100000 + Math.random() * 900000)
+        },
+        emailOptIn: {
+            type: DataTypes.BOOLEAN,
+            allowNull: false,
+            defaultValue: true
+        },
+        emailPreferences: {
+            type: DataTypes.JSON,
+            allowNull: true,
+            defaultValue: {
+                draftNotifications: true,
+                latestUpdates: true,
+                pollReminders: true
+            }
+        },
         userType: {
             type: DataTypes.STRING,
             allowNull: false,
@@ -47,11 +83,16 @@ User.init(
     {
         hooks: {
             async beforeCreate(newUserData) {
-                newUserData.pwd = await bcrypt.hash(newUserData.pwd, 10);
+                if (newUserData.pwd) {
+                    newUserData.pwd = await bcrypt.hash(newUserData.pwd, 10);
+                }
                 return newUserData;
             },
             async beforeUpdate(newUserData) {
-                newUserData.pwd = await bcrypt.hash(newUserData.pwd, 10);
+                // Only hash password if it's being updated and is not empty
+                if (newUserData.pwd && newUserData.changed('pwd')) {
+                    newUserData.pwd = await bcrypt.hash(newUserData.pwd, 10);
+                }
                 return newUserData;
             }
         },
