@@ -15,6 +15,17 @@ router.get('/', (req, res) => {
       })
       .then(dbData => {
         const data = dbData.get({plain: true});
+        
+        // Parse emailPreferences if it's a string
+        if (data.emailPreferences && typeof data.emailPreferences === 'string') {
+          try {
+            data.emailPreferences = JSON.parse(data.emailPreferences);
+          } catch (error) {
+            console.error('Error parsing emailPreferences:', error);
+            data.emailPreferences = null;
+          }
+        }
+        
         res.json({status: 'success', data});
       })
       .catch(err => {
