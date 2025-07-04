@@ -54,10 +54,10 @@ async function sendAdminNote(noteContent, createdAt) {
           }),
         });
         
-        console.log(`Email sent to ${user.email}`);
+        console.log(`Email sent to user ${user.firstName} ${user.lastName}`);
         results.push({ email: user.email, success: true, data });
       } catch (error) {
-        console.error(`Failed to send email to ${user.email}:`, error);
+        console.error(`Failed to send email to user ${user.firstName} ${user.lastName}:`, error);
         results.push({ email: user.email, success: false, error });
       }
     }

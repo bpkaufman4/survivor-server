@@ -2,6 +2,7 @@
 const express = require('express');
 const controller = require('./controller');
 const sequelize = require('./config/connection');
+const jobs = require('./jobs');
 const app = express();
 const PORT = process.env.PORT || 3001;
 const path = require('path');
@@ -43,5 +44,8 @@ const alter = process.env.SYNC_DB_ALTER === 'true';
 sequelize.sync({force: false, alter}).then(() => {
     server.listen(PORT, () => {
         console.log(`listening on port ${PORT}`);
+        
+        // Initialize background jobs after server starts
+        jobs.initializeJobs();
     });
 });

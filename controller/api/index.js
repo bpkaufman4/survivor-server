@@ -42,4 +42,7 @@ router.use('/uploadImage', uploadImageRoute);
 const playersRoute = require('./players');
 router.use('/players', playersRoute);
 
+const jobsRoute = require('./jobs');
+router.use('/jobs', jobsRoute);
+
 module.exports = router;

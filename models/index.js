@@ -52,6 +52,9 @@ Question.belongsTo(Survey, {foreignKey: 'surveyId', as: 'survey', onDelete: 'CAS
 Survey.hasMany(TeamSurvey, {foreignKey: 'surveyId', as: 'teamSurveys', onDelete: 'CASCADE'});
 TeamSurvey.belongsTo(Survey, {foreignKey: 'surveyId', as: 'survey', onDelete: 'CASCADE'});
 
+Team.hasMany(TeamSurvey, {foreignKey: 'teamId', as: 'teamSurveys', onDelete: 'CASCADE'});
+TeamSurvey.belongsTo(Team, {foreignKey: 'teamId', as: 'team', onDelete: 'CASCADE'});
+
 Question.hasMany(AnswerOption, {foreignKey: 'questionId', as: 'answerOptions', onDelete: 'CASCADE'});
 AnswerOption.belongsTo(Question, {foreignKey: 'questionId', as: 'question', onDelete: 'CASCADE'});
 
