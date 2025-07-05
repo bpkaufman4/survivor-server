@@ -3,28 +3,39 @@ const jwt = require('jsonwebtoken');
 
 module.exports = async (req, res) => {
   try {
+    console.log('\n=== Test Push Notification Request ===');
+    console.log('Request body:', req.body);
+    
     // Get user ID from JWT token
     const token = req.headers.authorization;
     if (!token) {
+      console.log('❌ No authorization token provided');
       return res.json({ status: 'fail', message: 'No token provided' });
     }
     
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const userId = decoded.id;
+    console.log('👤 User ID:', userId);
     
-    // Send test push notification to all user devices
+    // Use custom notification data from request body, with fallbacks
+    const { title, body, type } = req.body;
+    
     const notification = {
-      title: 'Test Notification',
-      body: 'This is a test push notification from React Survivor!'
+      title: title || 'Test Notification',
+      body: body || 'This is a test push notification from React Survivor!'
     };
     
     const data = {
-      type: 'test',
+      type: type || 'test',
       url: '/',
       timestamp: new Date().toISOString()
     };
     
+    console.log('📤 Sending notification:', notification);
+    console.log('📊 Notification data:', data);
+    
     const result = await sendPushNotificationToUser(userId, notification, data);
+    console.log('📥 Notification result:', result);
     
     if (result.success) {
       res.json({ 
