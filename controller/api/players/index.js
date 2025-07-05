@@ -22,7 +22,7 @@ router.get('/', (req, res) => {
               sequelize.literal(`(
                 SELECT IFNULL(SUM(episodeStatistic.points), 0) 
                 FROM episodeStatistic 
-                WHERE episodeStatistic.playerId = Player.playerId
+                WHERE episodeStatistic.playerId = player.playerId
               )`),
               'totalPoints'
             ],
@@ -30,7 +30,7 @@ router.get('/', (req, res) => {
               sequelize.literal(`(
                 SELECT COUNT(*) 
                 FROM episodeStatistic 
-                WHERE episodeStatistic.playerId = Player.playerId
+                WHERE episodeStatistic.playerId = player.playerId
               )`),
               'episodeCount'
             ]
