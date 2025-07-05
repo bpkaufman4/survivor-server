@@ -55,9 +55,12 @@ const sendPushNotification = async (fcmToken, notification, data = {}) => {
       return { success: false, error: 'Firebase Admin not initialized' };
     }
 
-    // Create a unique tag to prevent notification deduplication
+    // Create a unique server-side notification ID for tracking
     const timestamp = Date.now();
+    const serverNotificationId = `server_${timestamp}_${Math.random().toString(36).substr(2, 9)}`;
     const uniqueTag = `${data.type || 'general'}_${timestamp}_${Math.random().toString(36).substr(2, 9)}`;
+
+    console.log(`📤 Sending notification with server ID: ${serverNotificationId} to token: ${fcmToken.substring(0, 20)}...`);
 
     // Convert all data values to strings (Firebase requirement)
     const stringData = convertDataToStrings({
@@ -65,7 +68,8 @@ const sendPushNotification = async (fcmToken, notification, data = {}) => {
       clickAction: data.url || '/',
       type: data.type || 'general',
       timestamp: timestamp.toString(),
-      notificationId: uniqueTag
+      notificationId: uniqueTag,
+      serverNotificationId: serverNotificationId // Add server tracking ID
     });
 
     const message = {
@@ -92,11 +96,11 @@ const sendPushNotification = async (fcmToken, notification, data = {}) => {
     };
 
     const response = await admin.messaging().send(message);
-    console.log('Push notification sent successfully:', response);
-    return { success: true, response };
+    console.log(`✅ Push notification sent successfully. Server ID: ${serverNotificationId}, FCM Response: ${response}`);
+    return { success: true, response, serverNotificationId };
   } catch (error) {
-    console.error('Error sending push notification:', error);
-    return { success: false, error };
+    console.error(`❌ Error sending push notification (Server ID: ${serverNotificationId || 'unknown'}):`, error);
+    return { success: false, error, serverNotificationId };
   }
 };
 
