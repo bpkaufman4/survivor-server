@@ -10,6 +10,7 @@ const cors = require('cors');
 const http = require('http');
 const { setupWebSocket } = require('./websocket');
 const busboy = require('connect-busboy');
+const model = require('./models');
 
 app.enable('trust proxy');
 
