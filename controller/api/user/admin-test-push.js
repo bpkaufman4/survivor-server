@@ -32,6 +32,7 @@ router.post('/', async (req, res) => {
       const allTokens = await UserFcmToken.findAll({
         include: [{
           model: User,
+          as: 'user',
           attributes: ['firstName', 'lastName']
         }]
       });
@@ -44,6 +45,7 @@ router.post('/', async (req, res) => {
         where: { userId: targetUsers },
         include: [{
           model: User,
+          as: 'user',
           attributes: ['firstName', 'lastName']
         }]
       });
