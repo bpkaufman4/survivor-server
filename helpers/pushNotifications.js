@@ -191,8 +191,37 @@ const sendPushNotificationToUser = async (userId, notification, data = {}) => {
       return { success: false, message: 'No active devices found for user' };
     }
     
+    console.log(`📤 Sending push notification to user ${userId}:`);
+    console.log(`📱 Found ${fcmTokens.length} active devices:`);
+    
+    fcmTokens.forEach((token, index) => {
+      const deviceInfo = token.deviceInfo || {};
+      console.log(`  Device ${index + 1}: ${token.fcmToken.substring(0, 20)}... (Platform: ${deviceInfo.platform || 'Unknown'}, iOS: ${deviceInfo.isIOS || false}, PWA: ${deviceInfo.isPWA || false})`);
+    });
+    
     const tokens = fcmTokens.map(token => token.fcmToken);
     const result = await sendPushNotificationToMultiple(tokens, notification, data);
+    
+    // Log detailed results for each device
+    if (result.success && result.response) {
+      console.log(`📊 Notification Results:`);
+      console.log(`  ✅ Success: ${result.response.successCount}`);
+      console.log(`  ❌ Failed: ${result.response.failureCount}`);
+      
+      if (result.response.responses) {
+        result.response.responses.forEach((resp, index) => {
+          const deviceInfo = fcmTokens[index].deviceInfo || {};
+          const deviceDesc = `${deviceInfo.platform || 'Unknown'} (iOS: ${deviceInfo.isIOS || false}, PWA: ${deviceInfo.isPWA || false})`;
+          
+          if (resp.success) {
+            console.log(`  ✅ Device ${index + 1} (${deviceDesc}): SUCCESS - ${resp.messageId}`);
+          } else {
+            console.log(`  ❌ Device ${index + 1} (${deviceDesc}): FAILED - ${resp.error?.code || 'Unknown error'}`);
+            console.log(`    Error details:`, resp.error);
+          }
+        });
+      }
+    }
     
     // Handle failed tokens (invalid/expired)
     if (result.success && result.response?.failureCount > 0) {
