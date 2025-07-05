@@ -1,6 +1,5 @@
 const cron = require('node-cron');
 const surveyReminderJob = require('./surveyReminderJob');
-// const weeklyStatsJob = require('./weeklyStatsJob'); // Uncomment to enable
 
 // Store active jobs for management
 const activeJobs = new Map();
@@ -75,8 +74,6 @@ async function triggerJob(jobName) {
   switch(jobName) {
     case 'surveyReminder':
       return await surveyReminderJob.execute();
-    // case 'weeklyStats':
-    //   return await weeklyStatsJob.execute();
     default:
       throw new Error(`Unknown job: ${jobName}`);
   }

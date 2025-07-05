@@ -8,3 +8,8 @@ public
 seeders/
 seedDb.js
 data
+
+# Firebase service account credentials
+config/firebase-service-account.json
+firebase-service-account.json
+**/firebase-service-account.json

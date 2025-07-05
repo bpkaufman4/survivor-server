@@ -74,6 +74,10 @@ User.init(
                 pollReminders: true
             }
         },
+        fcmToken: {
+            type: DataTypes.STRING,
+            allowNull: true
+        },
         userType: {
             type: DataTypes.STRING,
             allowNull: false,

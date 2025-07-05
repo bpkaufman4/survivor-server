@@ -1,4 +1,5 @@
 const User = require('./User');
+const UserFcmToken = require('./UserFcmToken');
 const League = require('./League');
 const Player = require('./Player');
 const Team = require('./Team');
@@ -85,5 +86,9 @@ DraftPick.belongsTo(Team, {foreignKey: 'teamId', as: 'team', onDelete: 'CASCADE'
 Player.hasMany(DraftPick, {foreignKey: 'playerId', as: 'draftPicks', onDelete: 'SET NULL'});
 DraftPick.belongsTo(Player, {foreignKey: 'playerId', as: 'player', onDelete: 'SET NULL'});
 
+// User FCM Token relationships
+User.hasMany(UserFcmToken, {foreignKey: 'userId', as: 'fcmTokens', onDelete: 'CASCADE'});
+UserFcmToken.belongsTo(User, {foreignKey: 'userId', as: 'user', onDelete: 'CASCADE'});
 
-module.exports = { User, League, Tribe, Player, Team, PlayerTeam, Episode, Statistic, EpisodeStatistic, AdminNote, Survey, Question, AnswerOption, TeamSurvey, TeamAnswer, Draft, DraftOrder, DraftPick };
+
+module.exports = { User, UserFcmToken, League, Tribe, Player, Team, PlayerTeam, Episode, Statistic, EpisodeStatistic, AdminNote, Survey, Question, AnswerOption, TeamSurvey, TeamAnswer, Draft, DraftOrder, DraftPick };

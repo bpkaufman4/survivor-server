@@ -1,6 +1,7 @@
 const { Op } = require('sequelize');
 const { Episode, Survey, TeamSurvey, Team, User } = require('../models');
 const { checkEmailPreference } = require('../helpers/emailUtils');
+const { sendSurveyReminderNotificationToUser } = require('../helpers/pushNotifications');
 const FormData = require("form-data");
 const Mailgun = require("mailgun.js");
 
@@ -15,17 +16,10 @@ class SurveyReminderJob {
    */
   async execute() {
     try {
-      console.log('Starting survey reminder job execution...');
-      console.log('Current system time:', new Date().toISOString());
       
-      // For simplicity, let's find episodes airing in the next 24-48 hours
-      // This accounts for timezone differences and ensures we catch episodes
       const now = new Date();
       const startRange = new Date(now.getTime() + (20 * 60 * 60 * 1000)); // 20 hours from now
       const endRange = new Date(now.getTime() + (32 * 60 * 60 * 1000));   // 32 hours from now
-      
-      console.log(`Looking for episodes airing in the next 20-32 hours`);
-      console.log(`UTC range: ${startRange.toISOString()} to ${endRange.toISOString()}`);
       
       // Find episodes airing in the next 20-32 hours (tomorrow range)
       const episodesAiringTomorrow = await Episode.findAll({
@@ -41,10 +35,7 @@ class SurveyReminderJob {
         }]
       });
       
-      console.log(`Found ${episodesAiringTomorrow.length} episodes airing tomorrow`);
-      
       if (episodesAiringTomorrow.length === 0) {
-        console.log('No episodes airing tomorrow - no reminders needed');
         return { success: true, message: 'No episodes airing tomorrow', reminders: 0 };
       }
       
@@ -57,7 +48,6 @@ class SurveyReminderJob {
         }
       }
       
-      console.log(`Survey reminder job completed. Sent ${totalReminders} reminders.`);
       return { 
         success: true, 
         message: `Sent ${totalReminders} survey reminders`, 
@@ -65,7 +55,6 @@ class SurveyReminderJob {
       };
       
     } catch (error) {
-      console.error('Error in survey reminder job:', error);
       return { success: false, error: error.message };
     }
   }
@@ -75,7 +64,6 @@ class SurveyReminderJob {
    */
   async sendRemindersForSurvey(survey, episode) {
     try {
-      console.log(`Processing survey ${survey.surveyId} for episode "${episode.title || `Episode ${episode.season}`}"`);
       
       // First, get all teams in the system
       const allTeams = await Team.findAll({
@@ -85,10 +73,9 @@ class SurveyReminderJob {
             as: 'owner',
             attributes: ['userId', 'email', 'firstName', 'lastName', 'emailPreferences', 'emailVerified']
           }
-        ]
+        ],
+        attributes: ['teamId', 'name', 'ownerId', 'leagueId'] // Include leagueId
       });
-      
-      console.log(`Found ${allTeams.length} total teams`);
       
       // Then find which teams have completed this survey
       const completedTeamSurveys = await TeamSurvey.findAll({
@@ -100,11 +87,9 @@ class SurveyReminderJob {
       });
       
       const completedTeamIds = new Set(completedTeamSurveys.map(ts => ts.teamId));
-      console.log(`Found ${completedTeamIds.size} teams that have completed this survey`);
       
       // Filter teams that haven't completed the survey
       const incompleteTeams = allTeams.filter(team => !completedTeamIds.has(team.teamId));
-      console.log(`Found ${incompleteTeams.length} teams that need reminders`);
       
       // Group incomplete teams by user
       const teamsByUser = new Map();
@@ -113,7 +98,6 @@ class SurveyReminderJob {
         
         // Basic validation - user must have verified email
         if (!owner.emailVerified || !owner.email) {
-          console.log(`Skipping team ${team.name} - owner email not verified or missing`);
           continue;
         }
         
@@ -127,23 +111,20 @@ class SurveyReminderJob {
         teamsByUser.get(owner.userId).teams.push(team);
       }
       
-      console.log(`Found ${teamsByUser.size} users with incomplete teams`);
-      
       let remindersSent = 0;
       
       // Send one email per user with all their incomplete teams
       for (const [userId, { user, teams }] of teamsByUser) {
         const emailSent = await this.sendReminderEmail(user, teams, episode);
-        if (emailSent) {
+        const pushSent = await this.sendReminderPush(user, teams, episode);
+        if (emailSent || pushSent) {
           remindersSent++;
         }
       }
       
-      console.log(`Sent ${remindersSent} reminder emails for survey ${survey.surveyId}`);
       return remindersSent;
       
     } catch (error) {
-      console.error(`Error sending reminders for survey ${survey.surveyId}:`, error);
       return 0;
     }
   }
@@ -156,7 +137,6 @@ class SurveyReminderJob {
       // Check if user has enabled poll reminders
       const emailCheck = await checkEmailPreference(user.userId, 'pollReminders');
       if (!emailCheck.canSend) {
-        console.log(`Skipping reminder for user ${user.userId}: ${emailCheck.reason}`);
         return false;
       }
 
@@ -176,12 +156,44 @@ class SurveyReminderJob {
         template: "surveyreminder"
       });
 
-      console.log(`Survey reminder sent to user ${user.userId} for teams: ${teamNames}`);
-      console.log(`Mailgun response:`, JSON.stringify(data, null, 2));
       return true;
       
     } catch (error) {
-      console.error(`Error sending reminder email to user ${user.userId}:`, error);
+      return false;
+    }
+  }
+
+  /**
+   * Send push notification reminder
+   */
+  async sendReminderPush(user, teams, episode) {
+    try {
+      // Check if user has enabled poll reminders
+      const emailCheck = await checkEmailPreference(user.userId, 'pollReminders');
+      if (!emailCheck.canSend) {
+        return false;
+      }
+
+      const episodeTitle = episode.title || `Episode ${episode.season}`;
+      const teamCount = teams.length;
+      const teamText = teamCount === 1 ? 'team' : 'teams';
+      
+      // Pick the first league from the user's teams to link to
+      const firstTeamWithLeague = teams.find(team => team.leagueId);
+      const leagueId = firstTeamWithLeague ? firstTeamWithLeague.leagueId : null;
+
+      const result = await sendSurveyReminderNotificationToUser(user.userId, {
+        episodeName: episodeTitle,
+        episodeId: episode.episodeId,
+        teamCount: teamCount,
+        teamText: teamText,
+        leagueId: leagueId
+      });
+
+      return result.success;
+      
+    } catch (error) {
+      console.error('Error sending push reminder:', error);
       return false;
     }
   }

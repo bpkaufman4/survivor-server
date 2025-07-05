@@ -18,4 +18,13 @@ router.use('/resend-verification', resendVerificationRoute);
 const updateEmailRoute = require('./update-email');
 router.use('/update-email', updateEmailRoute);
 
+const fcmTokenRoute = require('./fcm-token');
+router.use('/fcm-token', fcmTokenRoute);
+
+const testPushRoute = require('./test-push');
+router.use('/test-push', testPushRoute);
+
+const devicesRoute = require('./devices');
+router.use('/devices', devicesRoute);
+
 module.exports = router;
