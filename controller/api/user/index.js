@@ -21,19 +21,10 @@ router.use('/update-email', updateEmailRoute);
 const fcmTokenRoute = require('./fcm-token');
 router.use('/fcm-token', fcmTokenRoute);
 
-const testPushRoute = require('./test-push');
-router.use('/test-push', testPushRoute);
-
 const devicesRoute = require('./devices');
 router.use('/devices', devicesRoute);
 
 const adminRoute = require('./admin');
 router.use('/admin', adminRoute);
-
-const adminTestPushRoute = require('./admin-test-push');
-router.use('/admin-test-push', adminTestPushRoute);
-
-const adminFcmDebugRoute = require('./admin-fcm-debug');
-router.use('/admin-fcm-debug', adminFcmDebugRoute);
 
 module.exports = router;

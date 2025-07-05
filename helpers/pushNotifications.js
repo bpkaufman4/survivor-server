@@ -59,8 +59,6 @@ const sendPushNotification = async (fcmToken, notification, data = {}) => {
     const timestamp = Date.now();
     const serverNotificationId = `${data.type || 'general'}_${timestamp}_${Math.random().toString(36).substr(2, 9)}`;
 
-    console.log(`📤 Sending notification with server ID: ${serverNotificationId} to token: ${fcmToken.substring(0, 20)}...`);
-
     // Convert all data values to strings (Firebase requirement)
     const stringData = convertDataToStrings({
       ...data,
@@ -95,7 +93,6 @@ const sendPushNotification = async (fcmToken, notification, data = {}) => {
     };
 
     const response = await admin.messaging().send(message);
-    console.log(`✅ Push notification sent successfully. Server ID: ${serverNotificationId}, FCM Response: ${response}`);
     return { success: true, response, serverNotificationId };
   } catch (error) {
     console.error(`❌ Error sending push notification (Server ID: ${serverNotificationId || 'unknown'}):`, error);
@@ -124,16 +121,12 @@ const sendPushNotificationToMultiple = async (tokens, notification, data = {}, d
     // Generate a single server notification ID for deduplication across all devices
     const timestamp = Date.now();
     const serverNotificationId = `${data.type || 'general'}_${timestamp}_${Math.random().toString(36).substr(2, 9)}`;
-    
-    console.log(`📧 Server Notification ID: ${serverNotificationId} (for deduplication)`);
 
     // Create messages for each token - iOS devices get data-only messages to prevent auto-display
     const messages = tokens.map((token, index) => {
       // Check if this token belongs to an iOS device
       const deviceInfo = deviceInfos[index] || {};
       const isIOS = deviceInfo.isIOS === true;
-      
-      console.log(`  Token ${index + 1}: iOS=${isIOS}, Platform=${deviceInfo.platform}`);
       
       // Convert all data values to strings (Firebase requirement)
       const stringData = convertDataToStrings({
@@ -150,7 +143,6 @@ const sendPushNotificationToMultiple = async (tokens, notification, data = {}, d
       
       if (isIOS) {
         // iOS: Send data-only message to prevent automatic notification display
-        console.log(`    📱 iOS device - sending data-only message`);
         return {
           token: token,
           // NO notification payload for iOS - prevents auto-display
@@ -165,7 +157,6 @@ const sendPushNotificationToMultiple = async (tokens, notification, data = {}, d
         };
       } else {
         // Non-iOS: Send normal notification + data message
-        console.log(`    💻 Non-iOS device - sending notification+data message`);
         return {
           token: token,
           notification: {
@@ -192,8 +183,6 @@ const sendPushNotificationToMultiple = async (tokens, notification, data = {}, d
 
     // Use sendEach for better error handling
     const response = await admin.messaging().sendEach(messages);
-    
-    console.log(`Push notifications sent: ${response.successCount} success, ${response.failureCount} failed`);
     
     return { success: true, response, serverNotificationId };
   } catch (error) {
