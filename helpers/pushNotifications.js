@@ -108,8 +108,9 @@ const sendPushNotification = async (fcmToken, notification, data = {}) => {
  * @param {Array} tokens - Array of FCM tokens
  * @param {Object} notification - Notification data
  * @param {Object} data - Additional data to send with the notification
+ * @param {Array} deviceInfos - Array of device info objects (optional)
  */
-const sendPushNotificationToMultiple = async (tokens, notification, data = {}) => {
+const sendPushNotificationToMultiple = async (tokens, notification, data = {}, deviceInfos = []) => {
   try {
     if (!admin.apps.length) {
       console.log('Firebase Admin not initialized, skipping push notifications');
@@ -126,8 +127,14 @@ const sendPushNotificationToMultiple = async (tokens, notification, data = {}) =
     
     console.log(`📧 Server Notification ID: ${serverNotificationId} (for deduplication)`);
 
-    // Create messages for each token - they all share the same server notification ID
+    // Create messages for each token - iOS devices get data-only messages to prevent auto-display
     const messages = tokens.map((token, index) => {
+      // Check if this token belongs to an iOS device
+      const deviceInfo = deviceInfos[index] || {};
+      const isIOS = deviceInfo.isIOS === true;
+      
+      console.log(`  Token ${index + 1}: iOS=${isIOS}, Platform=${deviceInfo.platform}`);
+      
       // Convert all data values to strings (Firebase requirement)
       const stringData = convertDataToStrings({
         ...data,
@@ -135,30 +142,52 @@ const sendPushNotificationToMultiple = async (tokens, notification, data = {}) =
         type: data.type || 'general',
         timestamp: timestamp.toString(),
         notificationId: serverNotificationId,  // Same ID for all devices for deduplication
-        serverNotificationId: serverNotificationId  // Shared ID for deduplication
+        serverNotificationId: serverNotificationId,  // Shared ID for deduplication
+        // For iOS data-only messages, include notification content in data
+        notificationTitle: notification.title,
+        notificationBody: notification.body
       });
       
-      return {
-        token: token,
-        notification: {
-          title: notification.title,
-          body: notification.body
-        },
-        data: stringData,
-        webpush: {
-          headers: {
-            Urgency: 'normal'
-          },
+      if (isIOS) {
+        // iOS: Send data-only message to prevent automatic notification display
+        console.log(`    📱 iOS device - sending data-only message`);
+        return {
+          token: token,
+          // NO notification payload for iOS - prevents auto-display
+          data: stringData,
+          apns: {
+            payload: {
+              aps: {
+                'content-available': 1  // Silent push for iOS
+              }
+            }
+          }
+        };
+      } else {
+        // Non-iOS: Send normal notification + data message
+        console.log(`    💻 Non-iOS device - sending notification+data message`);
+        return {
+          token: token,
           notification: {
             title: notification.title,
-            body: notification.body,
-            icon: notification.icon || '/android/android-launchericon-192-192.png',
-            badge: '/android/android-launchericon-96-96.png',
-            tag: serverNotificationId,  // Same tag for all devices - browser will deduplicate
-            requireInteraction: data.requireInteraction || false
+            body: notification.body
+          },
+          data: stringData,
+          webpush: {
+            headers: {
+              Urgency: 'normal'
+            },
+            notification: {
+              title: notification.title,
+              body: notification.body,
+              icon: notification.icon || '/android/android-launchericon-192-192.png',
+              badge: '/android/android-launchericon-96-96.png',
+              tag: serverNotificationId,  // Same tag for all devices - browser will deduplicate
+              requireInteraction: data.requireInteraction || false
+            }
           }
-        }
-      };
+        };
+      }
     });
 
     // Use sendEach for better error handling
