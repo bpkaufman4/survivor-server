@@ -30,6 +30,19 @@ if (!admin.apps.length) {
 }
 
 /**
+ * Convert all values in an object to strings (Firebase requirement)
+ */
+const convertDataToStrings = (data) => {
+  const stringData = {};
+  for (const [key, value] of Object.entries(data)) {
+    if (value !== null && value !== undefined) {
+      stringData[key] = String(value);
+    }
+  }
+  return stringData;
+};
+
+/**
  * Send a push notification to a user via FCM
  * @param {string} fcmToken - The FCM token of the user
  * @param {Object} notification - Notification data
@@ -46,19 +59,22 @@ const sendPushNotification = async (fcmToken, notification, data = {}) => {
     const timestamp = Date.now();
     const uniqueTag = `${data.type || 'general'}_${timestamp}_${Math.random().toString(36).substr(2, 9)}`;
 
+    // Convert all data values to strings (Firebase requirement)
+    const stringData = convertDataToStrings({
+      ...data,
+      clickAction: data.url || '/',
+      type: data.type || 'general',
+      timestamp: timestamp.toString(),
+      notificationId: uniqueTag
+    });
+
     const message = {
       token: fcmToken,
       notification: {
         title: notification.title,
         body: notification.body
       },
-      data: {
-        ...data,
-        clickAction: data.url || '/',
-        type: data.type || 'general',
-        timestamp: timestamp.toString(),
-        notificationId: uniqueTag
-      },
+      data: stringData,
       webpush: {
         headers: {
           Urgency: 'normal'
@@ -102,9 +118,18 @@ const sendPushNotificationToMultiple = async (tokens, notification, data = {}) =
     }
 
     // Create messages for each token with unique tags
-    const messages = tokens.map(token => {
+    const messages = tokens.map((token, index) => {
       const timestamp = Date.now();
       const uniqueTag = `${data.type || 'general'}_${timestamp}_${Math.random().toString(36).substr(2, 9)}`;
+      
+      // Convert all data values to strings (Firebase requirement)
+      const stringData = convertDataToStrings({
+        ...data,
+        clickAction: data.url || '/',
+        type: data.type || 'general',
+        timestamp: timestamp.toString(),
+        notificationId: uniqueTag
+      });
       
       return {
         token: token,
@@ -112,13 +137,7 @@ const sendPushNotificationToMultiple = async (tokens, notification, data = {}) =
           title: notification.title,
           body: notification.body
         },
-        data: {
-          ...data,
-          clickAction: data.url || '/',
-          type: data.type || 'general',
-          timestamp: timestamp.toString(),
-          notificationId: uniqueTag
-        },
+        data: stringData,
         webpush: {
           headers: {
             Urgency: 'normal'
@@ -165,13 +184,10 @@ const sendPushNotificationToUser = async (userId, notification, data = {}) => {
     });
     
     if (fcmTokens.length === 0) {
-      console.log(`No active FCM tokens found for user ${userId}`);
       return { success: false, message: 'No active devices found for user' };
     }
     
     const tokens = fcmTokens.map(token => token.fcmToken);
-    console.log(`Sending push notification to ${tokens.length} devices for user ${userId}`);
-    
     const result = await sendPushNotificationToMultiple(tokens, notification, data);
     
     // Handle failed tokens (invalid/expired)
@@ -196,13 +212,13 @@ const handleFailedTokens = async (response, fcmTokens) => {
     response.responses.forEach((resp, index) => {
       if (!resp.success) {
         const error = resp.error;
+        const errorCode = error?.code || error?.errorInfo?.code;
+        
         // Deactivate tokens that are invalid or unregistered
-        if (error?.code === 'messaging/invalid-argument' || 
-            error?.code === 'messaging/registration-token-not-registered' ||
-            error?.errorInfo?.code === 'messaging/invalid-argument' ||
-            error?.errorInfo?.code === 'messaging/registration-token-not-registered') {
+        if (errorCode === 'messaging/invalid-argument' || 
+            errorCode === 'messaging/registration-token-not-registered' ||
+            errorCode === 'messaging/invalid-registration-token') {
           failedTokens.push(fcmTokens[index].fcmToken);
-          console.log(`Marking token as invalid: ${error?.code || error?.errorInfo?.code}`);
         }
       }
     });
