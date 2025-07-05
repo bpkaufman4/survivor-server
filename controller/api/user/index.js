@@ -27,4 +27,7 @@ router.use('/devices', devicesRoute);
 const adminRoute = require('./admin');
 router.use('/admin', adminRoute);
 
+const adminTestPushRoute = require('./admin-test-push');
+router.use('/admin-test-push', adminTestPushRoute);
+
 module.exports = router;
