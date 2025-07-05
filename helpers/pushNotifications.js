@@ -55,10 +55,9 @@ const sendPushNotification = async (fcmToken, notification, data = {}) => {
       return { success: false, error: 'Firebase Admin not initialized' };
     }
 
-    // Create a unique server-side notification ID for tracking
+    // Create a unique server-side notification ID for tracking and deduplication
     const timestamp = Date.now();
-    const serverNotificationId = `server_${timestamp}_${Math.random().toString(36).substr(2, 9)}`;
-    const uniqueTag = `${data.type || 'general'}_${timestamp}_${Math.random().toString(36).substr(2, 9)}`;
+    const serverNotificationId = `${data.type || 'general'}_${timestamp}_${Math.random().toString(36).substr(2, 9)}`;
 
     console.log(`📤 Sending notification with server ID: ${serverNotificationId} to token: ${fcmToken.substring(0, 20)}...`);
 
@@ -68,7 +67,7 @@ const sendPushNotification = async (fcmToken, notification, data = {}) => {
       clickAction: data.url || '/',
       type: data.type || 'general',
       timestamp: timestamp.toString(),
-      notificationId: uniqueTag,
+      notificationId: serverNotificationId,  // Use server ID for consistency
       serverNotificationId: serverNotificationId // Add server tracking ID
     });
 
@@ -88,7 +87,7 @@ const sendPushNotification = async (fcmToken, notification, data = {}) => {
           body: notification.body,
           icon: notification.icon || '/android/android-launchericon-192-192.png',
           badge: '/android/android-launchericon-96-96.png',
-          tag: uniqueTag,
+          tag: serverNotificationId,  // Use server ID as tag for deduplication
           requireInteraction: data.requireInteraction || false,
           actions: data.actions || []
         }
@@ -121,18 +120,22 @@ const sendPushNotificationToMultiple = async (tokens, notification, data = {}) =
       return { success: true, response: { successCount: 0, failureCount: 0, responses: [] } };
     }
 
-    // Create messages for each token with unique tags
+    // Generate a single server notification ID for deduplication across all devices
+    const timestamp = Date.now();
+    const serverNotificationId = `${data.type || 'general'}_${timestamp}_${Math.random().toString(36).substr(2, 9)}`;
+    
+    console.log(`📧 Server Notification ID: ${serverNotificationId} (for deduplication)`);
+
+    // Create messages for each token - they all share the same server notification ID
     const messages = tokens.map((token, index) => {
-      const timestamp = Date.now();
-      const uniqueTag = `${data.type || 'general'}_${timestamp}_${Math.random().toString(36).substr(2, 9)}`;
-      
       // Convert all data values to strings (Firebase requirement)
       const stringData = convertDataToStrings({
         ...data,
         clickAction: data.url || '/',
         type: data.type || 'general',
         timestamp: timestamp.toString(),
-        notificationId: uniqueTag
+        notificationId: serverNotificationId,  // Same ID for all devices for deduplication
+        serverNotificationId: serverNotificationId  // Shared ID for deduplication
       });
       
       return {
@@ -151,7 +154,7 @@ const sendPushNotificationToMultiple = async (tokens, notification, data = {}) =
             body: notification.body,
             icon: notification.icon || '/android/android-launchericon-192-192.png',
             badge: '/android/android-launchericon-96-96.png',
-            tag: uniqueTag,
+            tag: serverNotificationId,  // Same tag for all devices - browser will deduplicate
             requireInteraction: data.requireInteraction || false
           }
         }
@@ -163,7 +166,7 @@ const sendPushNotificationToMultiple = async (tokens, notification, data = {}) =
     
     console.log(`Push notifications sent: ${response.successCount} success, ${response.failureCount} failed`);
     
-    return { success: true, response };
+    return { success: true, response, serverNotificationId };
   } catch (error) {
     console.error('Error sending push notifications:', error);
     return { success: false, error };
