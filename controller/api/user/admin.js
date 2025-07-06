@@ -1,5 +1,5 @@
 const router = require('express').Router();
-const { User } = require('../../../models');
+const { User, UserFcmToken } = require('../../../models');
 const jwt = require('jsonwebtoken');
 
 router.get('/', async (req, res) => {
@@ -17,9 +17,16 @@ router.get('/', async (req, res) => {
       return res.json({ status: 'fail', message: 'Admin access required' });
     }
     
-    // Get all users with basic info, excluding sensitive data
+    // Get all users with active FCM tokens, including basic info
     const users = await User.findAll({
       attributes: ['userId', 'firstName', 'lastName', 'email', 'emailVerified'],
+      include: [{
+        model: UserFcmToken,
+        as: 'fcmTokens',
+        where: { isActive: true },
+        required: true, // INNER JOIN - only users with active FCM tokens
+        attributes: [] // Don't include token data in response for security
+      }],
       order: [['firstName', 'ASC'], ['lastName', 'ASC']]
     });
     
