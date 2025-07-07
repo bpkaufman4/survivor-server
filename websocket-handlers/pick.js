@@ -61,17 +61,16 @@ module.exports = async function handlePick({ ws, payload, broadcastToLeague, cle
       return;
     }
     
-    // Check if the player is already on this team
+    // Check if the player is already assigned to any team
     const existingPlayerTeam = await PlayerTeam.findOne({
       where: { 
-        playerId: player.playerId, 
-        teamId: teamId 
+        playerId: player.playerId
       }
     });
     
     if (existingPlayerTeam) {
-      console.log(`Player ${player.playerId} is already on team ${teamId}`);
-      ws.send(JSON.stringify({ type: 'error', message: 'Player is already on this team' }));
+      console.log(`Player ${player.playerId} is already assigned to team ${existingPlayerTeam.teamId}`);
+      ws.send(JSON.stringify({ type: 'error', message: 'Player is already assigned to a team' }));
       return;
     }
     

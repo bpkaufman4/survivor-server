@@ -1,4 +1,5 @@
-const { Draft } = require('../models');
+const { Draft, League, Team, User, PlayerTeam, Player } = require('../models');
+const { Op } = require('sequelize');
 const { liveDraftData } = require('../websocket-handlers/helpers');
 const { sendDraftNotification, sendDraftStartingSoonNotification } = require('../helpers/pushNotifications');
 const { broadcastToLeague } = require('../websocket');
@@ -33,7 +34,7 @@ class DraftManagementJob {
       const scheduledDrafts = await Draft.findAll({
         where: {
           startDate: {
-            [require('sequelize').Op.lte]: now // Start date is in the past or now
+            [Op.lte]: now // Start date is in the past or now
           },
           complete: false
         }
@@ -179,21 +180,37 @@ class DraftManagementJob {
       // Import the handler here to avoid circular dependency
       const handlePick = require('../websocket-handlers/pick');
       
-      // Get current draft state
+      // Get fresh draft state right before making the pick
       const draftData = await liveDraftData(leagueId);
+      console.log(`Auto-pick debug for league ${leagueId}:`);
+      console.log(`- Current season: ${process.env.CURRENT_SEASON}`);
+      console.log(`- Total players in season: ${draftData.players.length}`);
+      console.log(`- Available players from liveDraftData: ${draftData.availablePlayers.length}`);
+      console.log(`- Draft complete: ${draftData.draft.complete}`);
+      
       const currentPickObj = draftData.draftOrder.find(pick => pick.dataValues.currentPick);
+      console.log(`- Current pick found: ${!!currentPickObj}`);
+      console.log(`- Current pick already has player: ${currentPickObj?.playerId ? 'YES' : 'NO'}`);
       
       if (!currentPickObj || currentPickObj.playerId) {
         console.log('No current pick found or pick already made');
         return;
       }
       
-      // Select a random available player
-      const availablePlayers = draftData.availablePlayers;
-      if (availablePlayers.length === 0) {
-        console.log('No available players for auto pick');        
+      // Double-check if draft is already complete
+      if (draftData.draft.complete) {
+        console.log('Draft is already complete, skipping auto-pick');
         return;
       }
+      
+      // Get available players - now correctly filtered by liveDraftData
+      const availablePlayers = draftData.availablePlayers;
+      if (availablePlayers.length === 0) {
+        console.log('No available players for auto pick - all players are already assigned to teams');
+        return;
+      }
+      
+      console.log(`Found ${availablePlayers.length} truly available players for auto pick`);
       
       const randomPlayer = availablePlayers[Math.floor(Math.random() * availablePlayers.length)];
       console.log(`Auto-picking player: ${randomPlayer.firstName} ${randomPlayer.lastName}`);
@@ -237,7 +254,12 @@ class DraftManagementJob {
       
     } catch (error) {
       console.error('Error in makeAutoPick:', error);
-      throw error;
+      // If the error is about player already being assigned, log it but don't throw
+      if (error.message && (error.message.includes('already on team') || error.message.includes('already assigned'))) {
+        console.log('Player was already picked by another process, this is expected in race conditions');
+      } else {
+        throw error;
+      }
     } finally {
       // Always remove the league from the in-progress set
       autoPickInProgress.delete(leagueId);
@@ -250,28 +272,27 @@ class DraftManagementJob {
   static async checkDraftsStartingSoon(now) {
     try {
       // Look for drafts starting in 4-6 minutes (1 minute tolerance window)
-      const fiveMinutesFromNow = new Date(now.getTime() + (5 * 60 * 1000));
       const fourMinutesFromNow = new Date(now.getTime() + (4 * 60 * 1000));
       const sixMinutesFromNow = new Date(now.getTime() + (6 * 60 * 1000));
       
       const upcomingDrafts = await Draft.findAll({
         where: {
           startDate: {
-            [require('sequelize').Op.between]: [fourMinutesFromNow, sixMinutesFromNow]
+            [Op.between]: [fourMinutesFromNow, sixMinutesFromNow]
           },
           complete: false
         },
         include: [
           {
-            model: require('../models').League,
+            model: League,
             as: 'league',
             include: [
               {
-                model: require('../models').Team,
+                model: Team,
                 as: 'teams',
                 include: [
                   {
-                    model: require('../models').User,
+                    model: User,
                     as: 'owner',
                     attributes: ['userId', 'email', 'firstName', 'lastName']
                   }
@@ -450,8 +471,8 @@ class DraftManagementJob {
           
           // Check if this is the final pick scenario
           if (await this.isFinalPickScenario(draftData)) {
-            console.log(`Final pick scenario detected for league ${draft.leagueId} - auto-completing draft`);
-            await this.makeFinalPick(draft.leagueId);
+            console.log(`Final pick scenario detected for league ${draft.leagueId} - making auto-pick`);
+            await this.makeAutoPick(draft.leagueId);
           }
         } catch (err) {
           console.error(`Error checking final pick for league ${draft.leagueId}:`, err);
@@ -469,81 +490,33 @@ class DraftManagementJob {
     // Count remaining picks
     const remainingPicks = draftData.draftOrder.filter(pick => !pick.playerId);
     
-    // Check if there's exactly one pick left and exactly one player left
-    return remainingPicks.length === 1 && draftData.availablePlayers.length === 1;
-  }
-
-  /**
-   * Make the final pick automatically
-   */
-  static async makeFinalPick(leagueId) {
-    // Prevent multiple simultaneous auto-picks for the same league
-    if (autoPickInProgress.has(leagueId)) {
-      console.log(`Auto-pick already in progress for league ${leagueId}, skipping final pick`);
-      return;
-    }
+    // Double-check available players with database verification using a single query
+    const playerIds = draftData.availablePlayers.map(player => player.playerId);
     
-    autoPickInProgress.add(leagueId);
-    
-    try {
-      // Import the handler here to avoid circular dependency
-      const handlePick = require('../websocket-handlers/pick');
-      
-      // Get current draft state
-      const draftData = await liveDraftData(leagueId);
-      const currentPickObj = draftData.draftOrder.find(pick => pick.dataValues.currentPick);
-      
-      if (!currentPickObj || currentPickObj.playerId) {
-        console.log('No current pick found or pick already made for final pick');
-        return;
-      }
-      
-      // There should be exactly one available player
-      const availablePlayers = draftData.availablePlayers;
-      if (availablePlayers.length !== 1) {
-        console.log(`Expected exactly 1 available player for final pick, found ${availablePlayers.length}`);
-        return;
-      }
-      
-      const finalPlayer = availablePlayers[0];
-      console.log(`Making final pick automatically: ${finalPlayer.firstName} ${finalPlayer.lastName}`);
-      
-      // Clear any existing timer since we're making the final pick
-      this.clearDraftTimer(leagueId);
-      
-      // Create a mock websocket object for the final pick
-      const mockWs = {
-        send: () => {}, // Mock send function
-        leagueId: leagueId,
-        myTeam: {
-          teamId: currentPickObj.teamId,
-          ownerId: currentPickObj.team?.ownerId || currentPickObj.team?.owner?.userId
+    // Get all existing assignments for these players in one query
+    const existingAssignments = await PlayerTeam.findAll({
+      where: { 
+        playerId: {
+          [Op.in]: playerIds
         }
-      };
-      
-      // Make the final pick - let the normal draft logic handle completion
-      await handlePick({
-        ws: mockWs,
-        payload: {
-          pick: currentPickObj,
-          player: finalPlayer,
-          auto: true
-        },
-        broadcastToLeague,
-        clearDraftTimer: this.clearDraftTimer.bind(this),
-        startDraftTimer: this.startDraftTimer.bind(this),        
-        clientsByLeague: new Map() // Empty map since this is auto pick
-      });
-
-      console.log(`Final pick completed automatically for league ${leagueId}`);
-      
-    } catch (error) {
-      console.error('Error in makeFinalPick:', error);
-      throw error;
-    } finally {
-      // Always remove the league from the in-progress set
-      autoPickInProgress.delete(leagueId);
+      },
+      attributes: ['playerId']
+    });
+    
+    // Create a set of assigned player IDs for quick lookup
+    const assignedPlayerIds = new Set(existingAssignments.map(assignment => assignment.playerId));
+    
+    // Count players that are actually available (not assigned)
+    const actuallyAvailablePlayers = playerIds.filter(playerId => !assignedPlayerIds.has(playerId)).length;
+    
+    // Check if there's exactly one pick left and exactly one player left
+    const isFinalScenario = remainingPicks.length === 1 && actuallyAvailablePlayers === 1;
+    
+    if (isFinalScenario) {
+      console.log(`Final pick scenario confirmed: ${remainingPicks.length} pick(s) remaining, ${actuallyAvailablePlayers} player(s) actually available`);
     }
+    
+    return isFinalScenario;
   }
 }
 

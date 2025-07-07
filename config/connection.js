@@ -13,7 +13,8 @@ if(process.env.JAWSDB_URL) {
         port: process.env.DB_PORT,
         dialectOptions: {
             multipleStatements: true
-        }
+        },
+        logging: false
     });
 }
 
