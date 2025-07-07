@@ -38,9 +38,12 @@ router.get('/:leagueId', (req, res) => {
             ]
           }
         })
-        .then(dbData => dbData.get({plain: true}))
-        .then(data => {
-          res.json({status: 'success', data});
+        .then(dbData => {
+          if(dbData) {
+            res.json({status: 'success', data: dbData.map(team => team.get({plain: true}))});
+          } else {
+            res.json({status: 'success', data: []});
+          }
         })
         .catch(err => {
           console.log(err);
