@@ -43,6 +43,7 @@ router.get('/:leagueId', (req, res) => {
           res.json({status: 'success', data});
         })
         .catch(err => {
+          console.log(err);
           res.json({status: 'fail', err});
         })
       }
