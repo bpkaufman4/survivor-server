@@ -42,63 +42,7 @@ const convertDataToStrings = (data) => {
   return stringData;
 };
 
-/**
- * Send a push notification to a user via FCM
- * @param {string} fcmToken - The FCM token of the user
- * @param {Object} notification - Notification data
- * @param {Object} data - Additional data to send with the notification
- */
-const sendPushNotification = async (fcmToken, notification, data = {}) => {
-  try {
-    if (!admin.apps.length) {
-      console.log('Firebase Admin not initialized, skipping push notification');
-      return { success: false, error: 'Firebase Admin not initialized' };
-    }
 
-    // Create a unique server-side notification ID for tracking and deduplication
-    const timestamp = Date.now();
-    const serverNotificationId = `${data.type || 'general'}_${timestamp}_${Math.random().toString(36).substr(2, 9)}`;
-
-    // Convert all data values to strings (Firebase requirement)
-    const stringData = convertDataToStrings({
-      ...data,
-      clickAction: data.url || '/',
-      type: data.type || 'general',
-      timestamp: timestamp.toString(),
-      notificationId: serverNotificationId,  // Use server ID for consistency
-      serverNotificationId: serverNotificationId // Add server tracking ID
-    });
-
-    const message = {
-      token: fcmToken,
-      notification: {
-        title: notification.title,
-        body: notification.body
-      },
-      data: stringData,
-      webpush: {
-        headers: {
-          Urgency: 'normal'
-        },
-        notification: {
-          title: notification.title,
-          body: notification.body,
-          icon: notification.icon || '/android/android-launchericon-192-192.png',
-          badge: '/android/android-launchericon-96-96.png',
-          tag: serverNotificationId,  // Use server ID as tag for deduplication
-          requireInteraction: data.requireInteraction || false,
-          actions: data.actions || []
-        }
-      }
-    };
-
-    const response = await admin.messaging().send(message);
-    return { success: true, response, serverNotificationId };
-  } catch (error) {
-    console.error(`❌ Error sending push notification (Server ID: ${serverNotificationId || 'unknown'}):`, error);
-    return { success: false, error, serverNotificationId };
-  }
-};
 
 /**
  * Send push notifications to multiple users
@@ -290,9 +234,9 @@ const handleFailedTokens = async (response, fcmTokens) => {
 };
 
 /**
- * Send push notification for draft events
+ * Send push notification for draft events to all user devices
  */
-const sendDraftNotification = async (fcmToken, draftData) => {
+const sendDraftNotification = async (userId, draftData) => {
   const notification = {
     title: 'Draft Update',
     body: `It's your turn to pick in ${draftData.leagueName}!`
@@ -300,40 +244,18 @@ const sendDraftNotification = async (fcmToken, draftData) => {
   
   const data = {
     type: 'draft',
-    url: '/draft',
+    url: `/draft/${draftData.leagueId}`,
     leagueId: draftData.leagueId,
     requireInteraction: true
   };
   
-  return await sendPushNotification(fcmToken, notification, data);
+  return await sendPushNotificationToUser(userId, notification, data);
 };
 
 /**
- * Send push notification for survey reminders
+ * Send push notification for admin notes to all user devices
  */
-const sendSurveyReminderNotification = async (fcmToken, surveyData) => {
-  const episodeName = surveyData.episodeName || 'upcoming episode';
-  const teamCount = surveyData.teamCount || 1;
-  
-  const notification = {
-    title: 'Survey Reminder',
-    body: `Don't forget to complete your survey for ${episodeName}!`
-  };
-  
-  const data = {
-    type: 'survey',
-    url: '/surveys',
-    episodeId: surveyData.episodeId || '',
-    teamCount: teamCount.toString()
-  };
-  
-  return await sendPushNotification(fcmToken, notification, data);
-};
-
-/**
- * Send push notification for admin notes
- */
-const sendAdminNoteNotification = async (fcmToken, noteData) => {
+const sendAdminNoteNotification = async (userId, noteData) => {
   const notification = {
     title: 'New Admin Note',
     body: noteData.message.substring(0, 100) + (noteData.message.length > 100 ? '...' : '')
@@ -345,27 +267,10 @@ const sendAdminNoteNotification = async (fcmToken, noteData) => {
     noteId: noteData.id
   };
   
-  return await sendPushNotification(fcmToken, notification, data);
-};
-
-/**
- * Send draft notification to all user devices
- */
-const sendDraftNotificationToUser = async (userId, draftData) => {
-  const notification = {
-    title: 'Draft Update',
-    body: `It's your turn to pick in ${draftData.leagueName}!`
-  };
-  
-  const data = {
-    type: 'draft',
-    url: '/draft',
-    leagueId: draftData.leagueId,
-    requireInteraction: true
-  };
-  
   return await sendPushNotificationToUser(userId, notification, data);
 };
+
+
 
 /**
  * Send survey reminder notification to all user devices
@@ -378,11 +283,13 @@ const sendSurveyReminderNotificationToUser = async (userId, surveyData) => {
   
   const notification = {
     title: 'Survey Reminder',
-    body: `Don't forget to complete your survey for ${episodeName}! You have ${teamCount} ${teamText} to update.`
+    body: teamCount > 1 
+      ? `Don't forget to complete your survey for ${episodeName}! You have ${teamCount} ${teamText} to update.`
+      : `Don't forget to complete your survey for ${episodeName}!`
   };
   
   // If we have a leagueId, link to the specific league page, otherwise default to surveys
-  const url = leagueId ? `/league/${leagueId}` : '/surveys';
+  const url = leagueId ? `/league/${leagueId}` : '/';
   
   const data = {
     type: 'survey',
@@ -395,32 +302,30 @@ const sendSurveyReminderNotificationToUser = async (userId, surveyData) => {
   return await sendPushNotificationToUser(userId, notification, data);
 };
 
+
 /**
- * Send admin note notification to all user devices
+ * Send draft starting soon notification to all user devices for league
  */
-const sendAdminNoteNotificationToUser = async (userId, noteData) => {
+const sendDraftStartingSoonNotification = async (userId, leagueId) => {
   const notification = {
-    title: 'New Admin Note',
-    body: noteData.message.substring(0, 100) + (noteData.message.length > 100 ? '...' : '')
+    title: 'Draft Starting Soon',
+    body: `Your draft is starting soon!`
   };
-  
+
   const data = {
-    type: 'admin_note',
-    url: '/notes',
-    noteId: noteData.id
+    type: 'draft_starting_soon',
+    url: `/draft/${leagueId}`,
+    leagueId: leagueId
   };
-  
+
   return await sendPushNotificationToUser(userId, notification, data);
 };
 
 module.exports = {
-  sendPushNotification,
   sendPushNotificationToMultiple,
+  sendDraftStartingSoonNotification,
   sendPushNotificationToUser,
   sendDraftNotification,
-  sendSurveyReminderNotification,
   sendAdminNoteNotification,
-  sendDraftNotificationToUser,
-  sendSurveyReminderNotificationToUser,
-  sendAdminNoteNotificationToUser
+  sendSurveyReminderNotificationToUser
 };

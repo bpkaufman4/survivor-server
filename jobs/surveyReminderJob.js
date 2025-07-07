@@ -14,7 +14,7 @@ class SurveyReminderJob {
   /**
    * Main execution function
    */
-  async execute() {
+  static async execute() {
     try {
       
       const now = new Date();
@@ -62,7 +62,7 @@ class SurveyReminderJob {
   /**
    * Send reminders for a specific survey
    */
-  async sendRemindersForSurvey(survey, episode) {
+  static async sendRemindersForSurvey(survey, episode) {
     try {
       
       // First, get all teams in the system
@@ -132,7 +132,7 @@ class SurveyReminderJob {
   /**
    * Send individual reminder email using Mailgun template
    */
-  async sendReminderEmail(user, teams, episode) {
+  static async sendReminderEmail(user, teams, episode) {
     try {
       // Check if user has enabled poll reminders
       const emailCheck = await checkEmailPreference(user.userId, 'pollReminders');
@@ -149,7 +149,7 @@ class SurveyReminderJob {
       const episodeTitle = episode.title || `Episode ${episode.season}`;
       const teamNames = teams.map(team => team.name).join(', ');
 
-      const data = await mg.messages.create("mg.fantasy-survivor.net", {
+      const data = await mg.messages.create(process.env.MAILGUN_DOMAIN, {
         from: "Fantasy Survivor <noreply@fantasy-survivor.net>",
         to: [user.email],
         subject: `Survey Reminder: ${episodeTitle} airs tomorrow!`,
@@ -166,7 +166,7 @@ class SurveyReminderJob {
   /**
    * Send push notification reminder
    */
-  async sendReminderPush(user, teams, episode) {
+  static async sendReminderPush(user, teams, episode) {
     try {
       // Check if user has enabled poll reminders
       const emailCheck = await checkEmailPreference(user.userId, 'pollReminders');
@@ -199,4 +199,4 @@ class SurveyReminderJob {
   }
 }
 
-module.exports = new SurveyReminderJob();
+module.exports = SurveyReminderJob;

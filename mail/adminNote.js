@@ -1,6 +1,7 @@
 const FormData = require("form-data"); // form-data v4.0.1
 const Mailgun = require("mailgun.js"); // mailgun.js v11.1.0
 const { User } = require("../models");
+const { sendAdminNoteNotification } = require("../helpers/pushNotifications");
 
 async function sendAdminNote(noteContent, createdAt) {
   console.log("Sending admin note to users with latest updates enabled...");
@@ -14,7 +15,7 @@ async function sendAdminNote(noteContent, createdAt) {
         },
         emailVerified: true
       },
-      attributes: ['email', 'firstName', 'lastName', 'emailPreferences']
+      attributes: ['userId', 'email', 'firstName', 'lastName', 'emailPreferences']
     });
 
     // Filter users who have latestUpdates enabled (default to true for backwards compatibility)
@@ -38,10 +39,13 @@ async function sendAdminNote(noteContent, createdAt) {
 
     const results = [];
 
-    // Send email to each eligible user
+    // Send both email and push notification to each eligible user
     for (const user of usersToEmail) {
+      const userResult = { userId: user.userId, email: user.email, emailSent: false, pushSent: false };
+      
       try {
-        const data = await mg.messages.create("mg.fantasy-survivor.net", {
+        // Send email
+        const emailData = await mg.messages.create(process.env.MAILGUN_DOMAIN, {
           from: "Fantasy Survivor <noreply@fantasy-survivor.net>",
           to: [user.email],
           subject: "New Update from Fantasy Survivor",
@@ -54,25 +58,57 @@ async function sendAdminNote(noteContent, createdAt) {
           }),
         });
         
+        userResult.emailSent = true;
+        userResult.emailData = emailData;
         console.log(`Email sent to user ${user.firstName} ${user.lastName}`);
-        results.push({ email: user.email, success: true, data });
       } catch (error) {
         console.error(`Failed to send email to user ${user.firstName} ${user.lastName}:`, error);
-        results.push({ email: user.email, success: false, error });
+        userResult.emailError = error;
       }
+
+      try {
+        // Send push notification with truncated message
+        const pushResult = await sendAdminNoteNotification(user.userId, {
+          message: noteContent || "A new update has been posted.",
+          id: Date.now() // Use timestamp as a simple ID
+        });
+        
+        userResult.pushSent = pushResult.success;
+        if (pushResult.success) {
+          console.log(`Push notification sent to user ${user.firstName} ${user.lastName}`);
+        } else {
+          console.log(`Push notification failed for user ${user.firstName} ${user.lastName}: ${pushResult.message || 'Unknown error'}`);
+        }
+        userResult.pushData = pushResult;
+      } catch (error) {
+        console.error(`Failed to send push notification to user ${user.firstName} ${user.lastName}:`, error);
+        userResult.pushError = error;
+      }
+
+      results.push(userResult);
     }
 
-    const successCount = results.filter(r => r.success).length;
-    const failureCount = results.filter(r => !r.success).length;
+    const emailSuccessCount = results.filter(r => r.emailSent).length;
+    const emailFailureCount = results.filter(r => !r.emailSent).length;
+    const pushSuccessCount = results.filter(r => r.pushSent).length;
+    const pushFailureCount = results.filter(r => !r.pushSent).length;
 
-    console.log(`Admin note email summary: ${successCount} sent, ${failureCount} failed`);
+    console.log(`Admin note summary: 
+      Emails - ${emailSuccessCount} sent, ${emailFailureCount} failed
+      Push notifications - ${pushSuccessCount} sent, ${pushFailureCount} failed`);
     
     return {
       success: true,
       summary: {
         totalEligible: usersToEmail.length,
-        sent: successCount,
-        failed: failureCount
+        emails: {
+          sent: emailSuccessCount,
+          failed: emailFailureCount
+        },
+        pushNotifications: {
+          sent: pushSuccessCount,
+          failed: pushFailureCount
+        }
       },
       results
     };

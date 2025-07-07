@@ -14,7 +14,7 @@ async function sendVerificationEmail(email, firstName, verificationCode) {
   });
 
   try {
-    const data = await mg.messages.create("mg.fantasy-survivor.net", {
+    const data = await mg.messages.create(process.env.MAILGUN_DOMAIN, {
       from: "Fantasy Survivor <noreply@fantasy-survivor.net>",
       to: [email],
       subject: "Verify Your Email - Fantasy Survivor",

@@ -131,6 +131,6 @@ Jobs that send emails should:
 ## Environment Variables
 
 Jobs may use these environment variables:
-- `FRONTEND_URL` - Base URL for frontend links in emails
+- `CLIENT_URL` - Base URL for frontend links in emails
 - `JWT_SECRET` - For API authentication
 - Email configuration variables (see email utilities)

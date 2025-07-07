@@ -1,5 +1,6 @@
 const cron = require('node-cron');
-const surveyReminderJob = require('./surveyReminderJob');
+const SurveyReminderJob = require('./surveyReminderJob');
+const DraftManagementJob = require('./draftManagementJob');
 
 // Store active jobs for management
 const activeJobs = new Map();
@@ -13,7 +14,7 @@ function initializeJobs() {
   // Survey reminder job - runs daily at 6 PM UTC
   const surveyReminderTask = cron.schedule('0 18 * * *', () => {
     console.log('Running survey reminder job...');
-    surveyReminderJob.execute();
+    SurveyReminderJob.execute();
   }, {
     scheduled: false // Don't start automatically
   });
@@ -22,6 +23,19 @@ function initializeJobs() {
     task: surveyReminderTask,
     schedule: '0 18 * * *',
     description: 'Send survey reminders to teams who haven\'t completed surveys'
+  });
+
+  // Draft management job - runs every 30 seconds to check for scheduled drafts
+  const draftManagementTask = cron.schedule('*/30 * * * * *', () => {
+    DraftManagementJob.execute();
+  }, {
+    scheduled: false // Don't start automatically
+  });
+  
+  activeJobs.set('draftManagement', {
+    task: draftManagementTask,
+    schedule: '*/30 * * * * *',
+    description: 'Check for scheduled drafts and manage draft timers'
   });
   
   // Start all jobs
@@ -73,7 +87,9 @@ function getJobsStatus() {
 async function triggerJob(jobName) {
   switch(jobName) {
     case 'surveyReminder':
-      return await surveyReminderJob.execute();
+      return await SurveyReminderJob.execute();
+    case 'draftManagement':
+      return await DraftManagementJob.execute();
     default:
       throw new Error(`Unknown job: ${jobName}`);
   }

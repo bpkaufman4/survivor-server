@@ -1,5 +1,6 @@
 const { PlayerTeam, DraftPick, Draft } = require("../models");
 const { liveDraftData } = require("./helpers");
+const { sendDraftNotification } = require("../helpers/pushNotifications");
 const jwt = require('jsonwebtoken');
 
 module.exports = async function handlePick({ ws, payload, broadcastToLeague, clearDraftTimer, startDraftTimer, clientsByLeague}) {
@@ -49,6 +50,31 @@ module.exports = async function handlePick({ ws, payload, broadcastToLeague, cle
   }  try {
     const teamId = pick.teamId || pick.team?.teamId;
     
+    // Check if this pick has already been made
+    const existingPick = await DraftPick.findOne({
+      where: { draftPickId: pick.draftPickId }
+    });
+    
+    if (existingPick && existingPick.playerId) {
+      console.log(`Pick ${pick.pickNumber} has already been made with player ${existingPick.playerId}`);
+      ws.send(JSON.stringify({ type: 'error', message: 'This pick has already been made' }));
+      return;
+    }
+    
+    // Check if the player is already on this team
+    const existingPlayerTeam = await PlayerTeam.findOne({
+      where: { 
+        playerId: player.playerId, 
+        teamId: teamId 
+      }
+    });
+    
+    if (existingPlayerTeam) {
+      console.log(`Player ${player.playerId} is already on team ${teamId}`);
+      ws.send(JSON.stringify({ type: 'error', message: 'Player is already on this team' }));
+      return;
+    }
+    
     await PlayerTeam.create({playerId: player.playerId, teamId: teamId});
     await DraftPick.update({playerId: player.playerId}, {where: {draftPickId: pick.draftPickId}});
     
@@ -81,6 +107,19 @@ module.exports = async function handlePick({ ws, payload, broadcastToLeague, cle
       // Start timer for next pick using draft settings
       const timerMs = (draftData.draft.pickTimeSeconds || 120) * 1000; // Convert to milliseconds
       startDraftTimer(ws.leagueId, timerMs);
+      
+      // Send push notification to the next picker that it's their turn
+      if (nextPickObj.team?.owner?.userId) {
+        try {
+          await sendDraftNotification(nextPickObj.team.owner.userId, {
+            leagueName: draftData.league?.name || 'your league',
+            leagueId: ws.leagueId
+          });
+          console.log(`Sent "your turn" notification to user ${nextPickObj.team.owner.userId} for pick ${nextPickObj.pickNumber}`);
+        } catch (error) {
+          console.error('Error sending your turn notification:', error);
+        }
+      }
     }
 
   } catch (err) {

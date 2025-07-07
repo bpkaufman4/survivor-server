@@ -49,7 +49,7 @@ const generateSurveyReminderEmail = (user, team, episode) => {
           
           <!-- Call to Action -->
           <div style="text-align: center; margin: 35px 0;">
-            <a href="${process.env.FRONTEND_URL || 'https://your-app.com'}" 
+            <a href="${process.env.CLIENT_URL || 'https://fantasy-survivor.net'}" 
                style="background-color: #007bff; color: white; padding: 15px 30px; 
                       text-decoration: none; border-radius: 25px; font-weight: bold; 
                       font-size: 16px; display: inline-block; box-shadow: 0 4px 15px rgba(0, 123, 255, 0.3);">
