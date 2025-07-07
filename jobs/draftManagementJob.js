@@ -26,6 +26,9 @@ class DraftManagementJob {
       // Check for drafts starting in 5 minutes (with 1 minute tolerance window)
       await this.checkDraftsStartingSoon(now);
       
+      // Check for final pick scenarios first
+      await this.checkFinalPick();
+      
       // Find drafts that should have started but haven't been completed
       const scheduledDrafts = await Draft.findAll({
         where: {
@@ -427,6 +430,120 @@ class DraftManagementJob {
     draftNotificationsSent.clear();
     // Clear auto-pick tracking
     autoPickInProgress.clear();
+  }
+
+  /**
+   * Check for final pick scenario and auto-complete if applicable
+   */
+  static async checkFinalPick() {
+    try {
+      // Find all incomplete drafts
+      const incompleteDrafts = await Draft.findAll({
+        where: {
+          complete: false
+        }
+      });
+
+      for (const draft of incompleteDrafts) {
+        try {
+          const draftData = await liveDraftData(draft.leagueId);
+          
+          // Check if this is the final pick scenario
+          if (await this.isFinalPickScenario(draftData)) {
+            console.log(`Final pick scenario detected for league ${draft.leagueId} - auto-completing draft`);
+            await this.makeFinalPick(draft.leagueId);
+          }
+        } catch (err) {
+          console.error(`Error checking final pick for league ${draft.leagueId}:`, err);
+        }
+      }
+    } catch (err) {
+      console.error('Error in checkFinalPick:', err);
+    }
+  }
+
+  /**
+   * Check if this is the final pick scenario (one pick left, one player left)
+   */
+  static async isFinalPickScenario(draftData) {
+    // Count remaining picks
+    const remainingPicks = draftData.draftOrder.filter(pick => !pick.playerId);
+    
+    // Check if there's exactly one pick left and exactly one player left
+    return remainingPicks.length === 1 && draftData.availablePlayers.length === 1;
+  }
+
+  /**
+   * Make the final pick automatically
+   */
+  static async makeFinalPick(leagueId) {
+    // Prevent multiple simultaneous auto-picks for the same league
+    if (autoPickInProgress.has(leagueId)) {
+      console.log(`Auto-pick already in progress for league ${leagueId}, skipping final pick`);
+      return;
+    }
+    
+    autoPickInProgress.add(leagueId);
+    
+    try {
+      // Import the handler here to avoid circular dependency
+      const handlePick = require('../websocket-handlers/pick');
+      
+      // Get current draft state
+      const draftData = await liveDraftData(leagueId);
+      const currentPickObj = draftData.draftOrder.find(pick => pick.dataValues.currentPick);
+      
+      if (!currentPickObj || currentPickObj.playerId) {
+        console.log('No current pick found or pick already made for final pick');
+        return;
+      }
+      
+      // There should be exactly one available player
+      const availablePlayers = draftData.availablePlayers;
+      if (availablePlayers.length !== 1) {
+        console.log(`Expected exactly 1 available player for final pick, found ${availablePlayers.length}`);
+        return;
+      }
+      
+      const finalPlayer = availablePlayers[0];
+      console.log(`Making final pick automatically: ${finalPlayer.firstName} ${finalPlayer.lastName}`);
+      
+      // Clear any existing timer since we're making the final pick
+      this.clearDraftTimer(leagueId);
+      
+      // Create a mock websocket object for the final pick
+      const mockWs = {
+        send: () => {}, // Mock send function
+        leagueId: leagueId,
+        myTeam: {
+          teamId: currentPickObj.teamId,
+          ownerId: currentPickObj.team?.ownerId || currentPickObj.team?.owner?.userId
+        }
+      };
+      
+      // Make the final pick - let the normal draft logic handle completion
+      await handlePick({
+        ws: mockWs,
+        payload: {
+          pick: currentPickObj,
+          player: finalPlayer,
+          auto: true
+        },
+        broadcastToLeague,
+        clearDraftTimer: this.clearDraftTimer.bind(this),
+        startDraftTimer: this.startDraftTimer.bind(this),        
+        clientsByLeague: new Map() // Empty map since this is auto pick
+      });
+
+      console.log(`Final pick completed automatically for league ${leagueId}`);
+      
+    } catch (error) {
+      console.error('Error in makeFinalPick:', error);
+      throw error;
+    } finally {
+      // Always remove the league from the in-progress set
+      autoPickInProgress.delete(leagueId);
+    }
   }
 }
 
