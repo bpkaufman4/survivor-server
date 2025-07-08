@@ -74,14 +74,27 @@ User.init(
                 pollReminders: true
             }
         },
-        fcmToken: {
-            type: DataTypes.STRING,
-            allowNull: true
+        pushNotificationPreferences: {
+            type: DataTypes.JSON,
+            allowNull: true,
+            defaultValue: {
+                draftNotifications: true,
+                latestUpdates: true,
+                pollReminders: true
+            }
         },
         userType: {
             type: DataTypes.STRING,
             allowNull: false,
             defaultValue: 'USER'
+        },
+        passwordResetToken: {
+            type: DataTypes.STRING,
+            allowNull: true
+        },
+        passwordResetExpires: {
+            type: DataTypes.DATE,
+            allowNull: true
         }
     },
     {

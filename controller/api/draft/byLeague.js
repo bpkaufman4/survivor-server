@@ -9,7 +9,8 @@ router.get('/:leagueId', (req, res) => {
     if (decoded) {
       Draft.findOne({
         where: {
-          leagueId: req.params.leagueId
+          leagueId: req.params.leagueId,
+          season: process.env.CURRENT_SEASON
         },
         include: [
           {

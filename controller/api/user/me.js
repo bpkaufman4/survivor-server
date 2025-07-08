@@ -11,7 +11,7 @@ router.get('/', (req, res) => {
         where: {
           userId: decoded.id
         },
-        attributes: ['firstName', 'lastName', 'userId', 'email', 'emailVerified', 'emailOptIn', 'emailPreferences']
+        attributes: ['firstName', 'lastName', 'userId', 'email', 'emailVerified', 'emailOptIn', 'emailPreferences', 'pushNotificationPreferences']
       })
       .then(dbData => {
         const data = dbData.get({plain: true});
@@ -23,6 +23,16 @@ router.get('/', (req, res) => {
           } catch (error) {
             console.error('Error parsing emailPreferences:', error);
             data.emailPreferences = null;
+          }
+        }
+        
+        // Parse pushNotificationPreferences if it's a string
+        if (data.pushNotificationPreferences && typeof data.pushNotificationPreferences === 'string') {
+          try {
+            data.pushNotificationPreferences = JSON.parse(data.pushNotificationPreferences);
+          } catch (error) {
+            console.error('Error parsing pushNotificationPreferences:', error);
+            data.pushNotificationPreferences = null;
           }
         }
         

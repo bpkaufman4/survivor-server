@@ -36,7 +36,8 @@ class DraftManagementJob {
           startDate: {
             [Op.lte]: now // Start date is in the past or now
           },
-          complete: false
+          complete: false,
+          season: process.env.CURRENT_SEASON // Ensure we're only checking current season drafts
         }
       });
 
@@ -280,7 +281,8 @@ class DraftManagementJob {
           startDate: {
             [Op.between]: [fourMinutesFromNow, sixMinutesFromNow]
           },
-          complete: false
+          complete: false,
+          season: process.env.CURRENT_SEASON
         },
         include: [
           {
@@ -461,7 +463,8 @@ class DraftManagementJob {
       // Find all incomplete drafts
       const incompleteDrafts = await Draft.findAll({
         where: {
-          complete: false
+          complete: false,
+          season: process.env.CURRENT_SEASON // Ensure we're only checking current season drafts
         }
       });
 

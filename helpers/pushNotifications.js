@@ -42,6 +42,23 @@ const convertDataToStrings = (data) => {
   return stringData;
 };
 
+/**
+ * Map notification types to preference keys
+ */
+const getPrefKeyForNotificationType = (notificationType) => {
+  switch (notificationType) {
+    case 'draft':
+    case 'draft_starting_soon':
+      return 'draftNotifications';
+    case 'admin_note':
+      return 'latestUpdates';
+    case 'survey':
+      return 'pollReminders';
+    default:
+      return null;
+  }
+};
+
 
 
 /**
@@ -140,9 +157,28 @@ const sendPushNotificationToMultiple = async (tokens, notification, data = {}, d
  * @param {string} userId - The user ID
  * @param {Object} notification - Notification data
  * @param {Object} data - Additional data to send with the notification
+ * @param {string} notificationType - Type of notification to check preferences for
  */
-const sendPushNotificationToUser = async (userId, notification, data = {}) => {
+const sendPushNotificationToUser = async (userId, notification, data = {}, notificationType = null) => {
   try {
+    // If notification type is specified, check user preferences
+    if (notificationType) {
+      const { User } = require('../models');
+      const user = await User.findByPk(userId, {
+        attributes: ['pushNotificationPreferences']
+      });
+      
+      if (user && user.pushNotificationPreferences) {
+        const prefs = user.pushNotificationPreferences;
+        const prefKey = getPrefKeyForNotificationType(notificationType);
+        
+        if (prefKey && prefs[prefKey] === false) {
+          console.log(`📵 Push notification skipped for user ${userId} - ${notificationType} notifications disabled`);
+          return { success: false, message: `User has disabled ${notificationType} push notifications` };
+        }
+      }
+    }
+
     // Get all active FCM tokens for this user
     const fcmTokens = await UserFcmToken.findAll({
       where: { 
@@ -249,7 +285,7 @@ const sendDraftNotification = async (userId, draftData) => {
     requireInteraction: true
   };
   
-  return await sendPushNotificationToUser(userId, notification, data);
+  return await sendPushNotificationToUser(userId, notification, data, 'draft');
 };
 
 /**
@@ -267,7 +303,7 @@ const sendAdminNoteNotification = async (userId, noteData) => {
     noteId: noteData.id
   };
   
-  return await sendPushNotificationToUser(userId, notification, data);
+  return await sendPushNotificationToUser(userId, notification, data, 'admin_note');
 };
 
 
@@ -299,7 +335,7 @@ const sendSurveyReminderNotificationToUser = async (userId, surveyData) => {
     leagueId: leagueId || ''
   };
   
-  return await sendPushNotificationToUser(userId, notification, data);
+  return await sendPushNotificationToUser(userId, notification, data, 'survey');
 };
 
 
@@ -318,7 +354,7 @@ const sendDraftStartingSoonNotification = async (userId, leagueId) => {
     leagueId: leagueId
   };
 
-  return await sendPushNotificationToUser(userId, notification, data);
+  return await sendPushNotificationToUser(userId, notification, data, 'draft_starting_soon');
 };
 
 module.exports = {

@@ -30,4 +30,10 @@ router.use('/admin', adminRoute);
 const adminTestPushRoute = require('./admin-test-push');
 router.use('/admin-test-push', adminTestPushRoute);
 
+const forgotPasswordRoute = require('./forgot-password');
+router.use('/forgot-password', forgotPasswordRoute);
+
+const resetPasswordRoute = require('./reset-password');
+router.use('/reset-password', resetPasswordRoute);
+
 module.exports = router;

@@ -1,5 +1,5 @@
 const sequelize = require('../config/connection');
-const { League, Team, Player, Draft, DraftPick, PlayerTeam } = require('../models');
+ const { League, Team, Player, Draft, DraftPick, PlayerTeam } = require('../models');
 const { Op } = require('sequelize');
 
 async function liveDraftData(leagueId) {
