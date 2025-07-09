@@ -17,7 +17,7 @@ This production-ready, enterprise-scale backend showcases mastery of:
 - **Enterprise security patterns** and robust authentication systems
 - **Scalable database architecture** with optimized query performance
 
-**Technologies:** Node.js, Express.js, Sequelize ORM, WebSockets, JWT, Mailgun, Firebase FCM, PostgreSQL
+**Technologies:** Node.js, Express.js, Sequelize ORM, WebSockets, JWT, Mailgun, Firebase FCM, MySQL
 
 ---
 
