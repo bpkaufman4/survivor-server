@@ -19,6 +19,11 @@ Tribe.init(
             type: DataTypes.INTEGER,
             allowNull: false,
             defaultValue: process.env.CURRENT_SEASON
+        },
+        color: {
+            type: DataTypes.STRING(7),
+            allowNull: false,
+            defaultValue: '#000000'
         }
     },
     {

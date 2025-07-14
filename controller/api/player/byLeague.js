@@ -16,6 +16,8 @@ router.get('/', (req, res) => {
           p.firstName,
           p.lastName,
           p.photoUrl,
+          tr.name tribeName,
+          tr.color tribeColor,
           (
             (
               select
@@ -46,6 +48,7 @@ router.get('/', (req, res) => {
             ) and t.leagueId = '${req.query.leagueId}'
           ) teamName
         FROM player p
+        LEFT JOIN tribe tr ON p.tribeId = tr.tribeId
         WHERE p.season = ${process.env.CURRENT_SEASON}
         order by place ASC`,
         {type: QueryTypes.SELECT}
