@@ -22,7 +22,6 @@ UserFcmToken.init(
         fcmToken: {
             type: DataTypes.STRING,
             allowNull: false,
-            unique: true // Prevent duplicate tokens
         },
         deviceInfo: {
             type: DataTypes.JSON,

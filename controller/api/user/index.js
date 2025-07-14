@@ -33,6 +33,9 @@ router.use('/admin-test-push', adminTestPushRoute);
 const adminSendEmailRoute = require('./admin-send-email');
 router.use('/admin-send-email', adminSendEmailRoute);
 
+const adminUsersEmailRoute = require('./admin-users-email');
+router.use('/admin-users-email', adminUsersEmailRoute);
+
 const forgotPasswordRoute = require('./forgot-password');
 router.use('/forgot-password', forgotPasswordRoute);
 
