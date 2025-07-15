@@ -10,11 +10,8 @@ router.get('/', (req, res) => {
     if (err || !decoded) {
       return res.json({ status: 'fail', message: 'invalid token' });
     }
-
-    // Only allow admins to view statistics
-    if (decoded.userType !== 'ADMIN') {
-      return res.json({ status: 'fail', message: 'Unauthorized' });
-    }    Statistic.findAll({
+    // Only
+    Statistic.findAll({
       order: [['place', 'ASC'], ['name', 'ASC']]
     })
     .then(statistics => {
