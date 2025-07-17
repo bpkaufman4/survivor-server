@@ -33,7 +33,7 @@ router.post('/', (req, res) => {
           })
 
           returnValue.token = token;
-          returnValue.target = user.userType === 'ADMIN' ? '/admin-episodes' : '/';
+          returnValue.target = user.userType === 'ADMIN' ? '/admin/episodes' : '/';
           returnValue.userType = user.userType;
 
           res.json(returnValue);
