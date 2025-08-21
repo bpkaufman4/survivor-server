@@ -11,7 +11,7 @@ router.get('/', (req, res) => {
       // Find all leagues where the user does NOT have a team
       League.findAll({
         where: sequelize.where(
-          sequelize.col('League.leagueId'),
+          sequelize.col('league.leagueId'),
           'NOT IN',
           sequelize.literal(`(
             SELECT DISTINCT leagueId 
