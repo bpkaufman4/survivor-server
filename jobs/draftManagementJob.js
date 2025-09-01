@@ -188,10 +188,22 @@ class DraftManagementJob {
       console.log(`- Total players in season: ${draftData.players.length}`);
       console.log(`- Available players from liveDraftData: ${draftData.availablePlayers.length}`);
       console.log(`- Draft complete: ${draftData.draft.complete}`);
+      console.log(`- Draft current pick number: ${draftData.draft.currentPick}`);
       
       const currentPickObj = draftData.draftOrder.find(pick => pick.dataValues.currentPick);
       console.log(`- Current pick found: ${!!currentPickObj}`);
       console.log(`- Current pick already has player: ${currentPickObj?.playerId ? 'YES' : 'NO'}`);
+      
+      if (currentPickObj) {
+        console.log(`- Current pick details:`, {
+          id: currentPickObj.id,
+          pickNumber: currentPickObj.pickNumber,
+          teamId: currentPickObj.teamId,
+          playerId: currentPickObj.playerId,
+          currentPick: currentPickObj.dataValues.currentPick,
+          teamOwner: currentPickObj.team?.owner?.userId
+        });
+      }
       
       if (!currentPickObj || currentPickObj.playerId) {
         console.log('No current pick found or pick already made');
@@ -214,7 +226,7 @@ class DraftManagementJob {
       console.log(`Found ${availablePlayers.length} truly available players for auto pick`);
       
       const randomPlayer = availablePlayers[Math.floor(Math.random() * availablePlayers.length)];
-      console.log(`Auto-picking player: ${randomPlayer.firstName} ${randomPlayer.lastName}`);
+      console.log(`Auto-picking player: ${randomPlayer.firstName} ${randomPlayer.lastName} (ID: ${randomPlayer.id})`);
       
       // Create a mock websocket object for the auto pick
       const mockWs = {
@@ -225,6 +237,20 @@ class DraftManagementJob {
           ownerId: currentPickObj.team?.ownerId || currentPickObj.team?.owner?.userId
         }
       };
+      
+      console.log(`Mock WS object:`, {
+        leagueId: mockWs.leagueId,
+        myTeam: mockWs.myTeam
+      });
+      
+      console.log(`About to call handlePick with:`, {
+        pickId: currentPickObj.pickId,
+        pickNumber: currentPickObj.pickNumber,
+        teamId: currentPickObj.teamId,
+        playerId: randomPlayer.playerId,
+        playerName: `${randomPlayer.firstName} ${randomPlayer.lastName}`,
+        auto: true
+      });
       
       // Make the auto pick
       await handlePick({
@@ -239,6 +265,24 @@ class DraftManagementJob {
         startDraftTimer: this.startDraftTimer.bind(this),        
         clientsByLeague: new Map() // Empty map since this is auto pick
       });
+      
+      console.log(`handlePick completed for auto-pick. Checking database state...`);
+      
+      // Log the state after the pick to verify it worked
+      try {
+        const updatedDraftData = await liveDraftData(leagueId);
+        const updatedPickObj = updatedDraftData.draftOrder.find(pick => pick.id === currentPickObj.id);
+        console.log(`Post-pick verification:`, {
+          pickId: updatedPickObj?.id,
+          pickNumber: updatedPickObj?.pickNumber,
+          playerId: updatedPickObj?.playerId,
+          currentPick: updatedPickObj?.dataValues?.currentPick,
+          draftCurrentPick: updatedDraftData.draft.currentPick,
+          draftComplete: updatedDraftData.draft.complete
+        });
+      } catch (verifyError) {
+        console.error('Error verifying pick results:', verifyError);
+      }
       
       // Broadcast that an auto pick was made
       broadcastToLeague(leagueId, {
