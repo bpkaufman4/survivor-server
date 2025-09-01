@@ -190,6 +190,13 @@ class DraftManagementJob {
       console.log(`- Draft complete: ${draftData.draft.complete}`);
       console.log(`- Draft current pick number: ${draftData.draft.currentPick}`);
       
+      // Log the first few available players to check their structure
+      console.log(`- First available player structure:`, draftData.availablePlayers[0]);
+      
+      // Log draft order structure to see what's missing
+      console.log(`- Draft order count: ${draftData.draftOrder.length}`);
+      console.log(`- First draft order item:`, draftData.draftOrder[0]);
+      
       const currentPickObj = draftData.draftOrder.find(pick => pick.dataValues.currentPick);
       console.log(`- Current pick found: ${!!currentPickObj}`);
       console.log(`- Current pick already has player: ${currentPickObj?.playerId ? 'YES' : 'NO'}`);
@@ -201,7 +208,8 @@ class DraftManagementJob {
           teamId: currentPickObj.teamId,
           playerId: currentPickObj.playerId,
           currentPick: currentPickObj.dataValues.currentPick,
-          teamOwner: currentPickObj.team?.owner?.userId
+          teamOwner: currentPickObj.team?.owner?.userId,
+          fullObject: currentPickObj
         });
       }
       
@@ -227,6 +235,7 @@ class DraftManagementJob {
       
       const randomPlayer = availablePlayers[Math.floor(Math.random() * availablePlayers.length)];
       console.log(`Auto-picking player: ${randomPlayer.firstName} ${randomPlayer.lastName} (ID: ${randomPlayer.id})`);
+      console.log(`Random player full object:`, randomPlayer);
       
       // Create a mock websocket object for the auto pick
       const mockWs = {
@@ -244,10 +253,10 @@ class DraftManagementJob {
       });
       
       console.log(`About to call handlePick with:`, {
-        pickId: currentPickObj.pickId,
+        pickId: currentPickObj.id,
         pickNumber: currentPickObj.pickNumber,
         teamId: currentPickObj.teamId,
-        playerId: randomPlayer.playerId,
+        playerId: randomPlayer.id,
         playerName: `${randomPlayer.firstName} ${randomPlayer.lastName}`,
         auto: true
       });
