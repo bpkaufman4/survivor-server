@@ -12,4 +12,7 @@ router.use('/byLeague', byLeagueRoute);
 const forDraftRoute = require('./forDraft');
 router.use('/forDraft', forDraftRoute);
 
+const changeNameRoute = require('./changeName');
+router.use('/:teamId/name', changeNameRoute);
+
 module.exports = router;
