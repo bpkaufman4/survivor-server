@@ -26,17 +26,17 @@ function initializeJobs() {
   });
 
   // Draft management job - runs every 30 seconds to check for scheduled drafts
-  const draftManagementTask = cron.schedule('*/30 * * * * *', () => {
-    DraftManagementJob.execute();
-  }, {
-    scheduled: false // Don't start automatically
-  });
+  // const draftManagementTask = cron.schedule('*/30 * * * * *', () => {
+  //   DraftManagementJob.execute();
+  // }, {
+  //   scheduled: false // Don't start automatically
+  // });
   
-  activeJobs.set('draftManagement', {
-    task: draftManagementTask,
-    schedule: '*/30 * * * * *',
-    description: 'Check for scheduled drafts and manage draft timers'
-  });
+  // activeJobs.set('draftManagement', {
+  //   task: draftManagementTask,
+  //   schedule: '*/30 * * * * *',
+  //   description: 'Check for scheduled drafts and manage draft timers'
+  // });
   
   // Start all jobs
   startAllJobs();
