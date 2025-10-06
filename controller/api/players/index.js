@@ -28,7 +28,7 @@ router.get('/', (req, res) => {
             ],
             [
               sequelize.literal(`(
-                SELECT COUNT(*) 
+                SELECT COUNT(distinct episodeStatistic.episodeId) 
                 FROM episodeStatistic 
                 WHERE episodeStatistic.playerId = player.playerId
               )`),
