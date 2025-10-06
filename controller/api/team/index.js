@@ -15,4 +15,7 @@ router.use('/forDraft', forDraftRoute);
 const changeNameRoute = require('./changeName');
 router.use('/:teamId/name', changeNameRoute);
 
+const theirTeamRoute = require('./theirTeam');
+router.use('/theirTeam', theirTeamRoute);
+
 module.exports = router;
