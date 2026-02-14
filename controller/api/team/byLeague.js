@@ -5,11 +5,11 @@ const { Team } = require('../../../models');
 const router = require('express').Router();
 
 router.get('/', (req, res) => {
-  
+
   const token = req.headers.authorization;
-  
+
   jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
-    if(decoded) {
+    if (decoded) {
 
       sequelize.query(
         `SELECT 
@@ -46,32 +46,32 @@ router.get('/', (req, res) => {
                     SUM(es.points) AS points
                 FROM episodeStatistic es
                 GROUP BY es.playerId
-            ) cte ON pt.playerId = cte.playerId
+            ) cte ON p.playerId = cte.playerId
             WHERE t.leagueId = '${req.query.leagueId}'
             GROUP BY t.teamId
         ) cte2
         ORDER BY totalPoints DESC;`,
-        {type: QueryTypes.SELECT}
+        { type: QueryTypes.SELECT }
       )
-      .then(data => {
-        res.json({status: 'success', data});
-      })
-      .catch(err => {
-        res.json({status: 'fail', err});
-      })
+        .then(data => {
+          res.json({ status: 'success', data });
+        })
+        .catch(err => {
+          res.json({ status: 'fail', err });
+        })
 
     }
-    if(err) {
-      res.json({status: 'fail', err});
+    if (err) {
+      res.json({ status: 'fail', err });
     }
   })
 });
 
 router.get('/:leagueId', (req, res) => {
-  const token = req.headers.authorization; 
+  const token = req.headers.authorization;
 
   jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
-    if(decoded) {
+    if (decoded) {
       try {
         Team.findAll({
           where: {
@@ -87,10 +87,10 @@ router.get('/:leagueId', (req, res) => {
         })
       } catch (err) {
         console.log(err);
-        return res.json({status: 'fail', err});
+        return res.json({ status: 'fail', err });
       }
     } else {
-      return res.json({status: 'fail', message: 'invalid token'});
+      return res.json({ status: 'fail', message: 'invalid token' });
     }
   });
 });

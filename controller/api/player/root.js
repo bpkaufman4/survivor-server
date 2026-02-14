@@ -8,22 +8,22 @@ router.get('/', (req, res) => {
   const token = req.headers.authorization;
 
   jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
-    if(decoded) {
+    if (decoded) {
       Player.findAll({
-        where: {season: process.env.CURRENT_SEASON},
-        include: {model: Tribe, as: 'tribe'}
+        where: { season: process.env.CURRENT_SEASON },
+        include: { model: Tribe, as: 'tribe' }
       })
-      .then(dbData => {
-        return dbData.map(player => player.get({plain: true}));
-      })
-      .then(data => {
-        res.json({status: 'success', data});
-      })
-      .catch(err => {
-        res.json({status: 'fail', err});
-      })
+        .then(dbData => {
+          return dbData.map(player => player.get({ plain: true }));
+        })
+        .then(data => {
+          res.json({ status: 'success', data });
+        })
+        .catch(err => {
+          res.json({ status: 'fail', err });
+        })
     } else {
-      res.json({status: 'fail', err});
+      res.json({ status: 'fail', err });
     }
   })
 });
@@ -31,7 +31,7 @@ router.get('/', (req, res) => {
 router.get('/:playerId', (req, res) => {
   const token = req.headers.authorization;
   jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
-    if(decoded) {
+    if (decoded) {
       Player.findOne({
         where: {
           playerId: req.params.playerId
@@ -45,43 +45,44 @@ router.get('/:playerId', (req, res) => {
           ]
         }
       })
-      .then(data => {
-        data = data.get({plain: true})
-        res.json({status: 'success', data});
-      })
-      .catch(err => {
-        res.json({status: 'fail', err});
-      })
+        .then(data => {
+          data = data.get({ plain: true })
+          res.json({ status: 'success', data });
+        })
+        .catch(err => {
+          res.json({ status: 'fail', err });
+        })
     } else {
-      res.json({status: 'fail', err});
+      res.json({ status: 'fail', err });
     }
   })
 });
 
 router.post('/', (req, res) => {
   const token = req.headers.authorization;
-  const player = req.body;
+  let player = req.body;
   jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
-    if(decoded && decoded.userType === 'ADMIN') {
-      if(!player.playerId) {
+    if (decoded && decoded.userType === 'ADMIN') {
+      if (!player.playerId) {
+        delete player.playerId;
         Player.create(player)
-        .then(data => {
-          res.json({status: 'success', data})
-        })
-        .catch(err => {
-          res.json({status: 'fail', err});
-        })
+          .then(data => {
+            res.json({ status: 'success', data })
+          })
+          .catch(err => {
+            res.json({ status: 'fail', err });
+          })
       } else {
-        Player.update(player, {where: {playerId: player.playerId}})
-        .then(data => {
-          res.json({status: 'success', data});
-        })
-        .catch(err => {
-          res.json({status: 'fail', err});
-        })
+        Player.update(player, { where: { playerId: player.playerId } })
+          .then(data => {
+            res.json({ status: 'success', data });
+          })
+          .catch(err => {
+            res.json({ status: 'fail', err });
+          })
       }
     } else {
-      res.json({status: 'fail', err});
+      res.json({ status: 'fail', err });
     }
   })
 })

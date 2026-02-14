@@ -1,7 +1,7 @@
 const { Model, DataTypes } = require('sequelize');
 const sequelize = require('../config/connection');
 
-class League extends Model {}
+class League extends Model { }
 
 League.init(
     {
@@ -30,6 +30,11 @@ League.init(
         },
         password: {
             type: DataTypes.STRING,
+        },
+        draftEnabled: {
+            type: DataTypes.BOOLEAN,
+            allowNull: false,
+            defaultValue: false
         }
     },
     {

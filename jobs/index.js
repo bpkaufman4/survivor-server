@@ -18,7 +18,7 @@ function initializeJobs() {
   }, {
     scheduled: false // Don't start automatically
   });
-  
+
   activeJobs.set('surveyReminder', {
     task: surveyReminderTask,
     schedule: '0 18 * * *',
@@ -26,21 +26,21 @@ function initializeJobs() {
   });
 
   // Draft management job - runs every 30 seconds to check for scheduled drafts
-  // const draftManagementTask = cron.schedule('*/30 * * * * *', () => {
-  //   DraftManagementJob.execute();
-  // }, {
-  //   scheduled: false // Don't start automatically
-  // });
-  
-  // activeJobs.set('draftManagement', {
-  //   task: draftManagementTask,
-  //   schedule: '*/30 * * * * *',
-  //   description: 'Check for scheduled drafts and manage draft timers'
-  // });
-  
+  const draftManagementTask = cron.schedule('*/30 * * * * *', () => {
+    DraftManagementJob.execute();
+  }, {
+    scheduled: false // Don't start automatically
+  });
+
+  activeJobs.set('draftManagement', {
+    task: draftManagementTask,
+    schedule: '*/30 * * * * *',
+    description: 'Check for scheduled drafts and manage draft timers'
+  });
+
   // Start all jobs
   startAllJobs();
-  
+
   console.log(`Initialized ${activeJobs.size} background jobs`);
 }
 
@@ -85,7 +85,7 @@ function getJobsStatus() {
  * Manually trigger a specific job
  */
 async function triggerJob(jobName) {
-  switch(jobName) {
+  switch (jobName) {
     case 'surveyReminder':
       return await SurveyReminderJob.execute();
     case 'draftManagement':

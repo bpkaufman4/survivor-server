@@ -27,6 +27,9 @@ router.use('/episode', episodeRoute);
 const surveyRoute = require('./survey');
 router.use('/survey', surveyRoute);
 
+const pollRoute = require('./poll');
+router.use('/poll', pollRoute);
+
 const userRoute = require('./user');
 router.use('/user', userRoute);
 

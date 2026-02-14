@@ -5,9 +5,9 @@ const sequelize = require('sequelize')
 
 router.get('/:teamId', (req, res) => {
   const token = req.headers.authorization;
-  if(token) {
+  if (token) {
     jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
-      if(decoded) {
+      if (decoded) {
         Team.findOne({
           where: {
             teamId: req.params.teamId
@@ -32,27 +32,27 @@ router.get('/:teamId', (req, res) => {
           attributes: {
             include: [
               [
-                sequelize.literal(`(select ifnull(sum(episodeStatistic.points), 0) from episodeStatistic where episodeStatistic.playerId in (select playerId from playerTeam where playerTeam.teamId = team.teamId))`), 'totalPoints'
+                sequelize.literal(`(select ifnull(sum(episodeStatistic.points), 0) from episodeStatistic join player p on p.playerId = episodeStatistic.playerId where p.season = ${process.env.CURRENT_SEASON} and episodeStatistic.playerId in (select playerId from playerTeam where playerTeam.teamId = team.teamId))`), 'totalPoints'
               ]
             ]
           }
         })
-        .then(dbData => {
-          console.log(dbData);
-          if(dbData) {
-            res.json({status: 'success', data: dbData.get({plain: true})});
-          } else {
-            res.json({status: 'success', data: []});
-          }
-        })
-        .catch(err => {
-          console.log(err);
-          res.json({status: 'fail', err});
-        })
+          .then(dbData => {
+            console.log(dbData);
+            if (dbData) {
+              res.json({ status: 'success', data: dbData.get({ plain: true }) });
+            } else {
+              res.json({ status: 'success', data: [] });
+            }
+          })
+          .catch(err => {
+            console.log(err);
+            res.json({ status: 'fail', err });
+          })
       }
     })
   } else {
-    res.json({status: 'fail', message: 'No token provided'})
+    res.json({ status: 'fail', message: 'No token provided' })
   }
 })
 

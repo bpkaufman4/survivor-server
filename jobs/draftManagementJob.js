@@ -16,20 +16,20 @@ const autoPickInProgress = new Set();
  * Handles automated draft timing, auto-picks, and notifications
  */
 class DraftManagementJob {
-  
+
   /**
    * Check for scheduled drafts that should be started
    */
   static async checkScheduledDrafts() {
     try {
       const now = new Date();
-      
+
       // Check for drafts starting in 5 minutes (with 1 minute tolerance window)
       await this.checkDraftsStartingSoon(now);
-      
+
       // Check for final pick scenarios first
       await this.checkFinalPick();
-      
+
       // Find drafts that should have started but haven't been completed
       const scheduledDrafts = await Draft.findAll({
         where: {
@@ -50,7 +50,7 @@ class DraftManagementJob {
         try {
           const draftData = await liveDraftData(draft.leagueId);
           const currentPickObj = draftData.draftOrder.find(pick => pick.dataValues.currentPick);
-          
+
           // Start timer if there's a current pick waiting
           if (currentPickObj && !currentPickObj.playerId && !draftData.draft.complete) {
             console.log(`Auto-starting draft timer for league ${draft.leagueId} (scheduled start: ${draft.startDate})`);
@@ -76,10 +76,10 @@ class DraftManagementJob {
     // If no timeout provided, fetch from draft settings
     const getTimeoutMs = async () => {
       if (timeoutMs) return timeoutMs;
-      
+
       try {
-        const draft = await Draft.findOne({ 
-          where: { leagueId, season: process.env.CURRENT_SEASON } 
+        const draft = await Draft.findOne({
+          where: { leagueId, season: process.env.CURRENT_SEASON }
         });
         return draft ? (draft.pickTimeSeconds * 1000) : 120000; // Fallback to 2 minutes
       } catch (err) {
@@ -90,10 +90,10 @@ class DraftManagementJob {
 
     const finalTimeoutMs = await getTimeoutMs();
     const startTime = Date.now();
-    
+
     const timeout = setTimeout(async () => {
       console.log(`Draft timer expired for league ${leagueId}, making auto pick`);
-      
+
       try {
         await this.makeAutoPick(leagueId);
       } catch (error) {
@@ -102,7 +102,7 @@ class DraftManagementJob {
         draftTimers.delete(leagueId);
       }
     }, finalTimeoutMs);
-    
+
     draftTimers.set(leagueId, { timeout, startTime, timeoutMs: finalTimeoutMs });
 
     // Broadcast timer started to all clients
@@ -121,7 +121,7 @@ class DraftManagementJob {
       try {
         const draftData = await liveDraftData(leagueId);
         const currentPickObj = draftData.draftOrder.find(pick => pick.dataValues.currentPick);
-        
+
         if (currentPickObj && !currentPickObj.playerId && currentPickObj.team?.owner?.userId) {
           await sendDraftNotification(currentPickObj.team.owner.userId, {
             leagueName: draftData.league?.name || 'your league',
@@ -174,13 +174,13 @@ class DraftManagementJob {
       console.log(`Auto-pick already in progress for league ${leagueId}, skipping`);
       return;
     }
-    
+
     autoPickInProgress.add(leagueId);
-    
+
     try {
       // Import the handler here to avoid circular dependency
       const handlePick = require('../websocket-handlers/pick');
-      
+
       // Get fresh draft state right before making the pick
       const draftData = await liveDraftData(leagueId);
       console.log(`Auto-pick debug for league ${leagueId}:`);
@@ -189,18 +189,18 @@ class DraftManagementJob {
       console.log(`- Available players from liveDraftData: ${draftData.availablePlayers.length}`);
       console.log(`- Draft complete: ${draftData.draft.complete}`);
       console.log(`- Draft current pick number: ${draftData.draft.currentPick}`);
-      
+
       // Log the first few available players to check their structure
       console.log(`- First available player structure:`, draftData.availablePlayers[0]);
-      
+
       // Log draft order structure to see what's missing
       console.log(`- Draft order count: ${draftData.draftOrder.length}`);
       console.log(`- First draft order item:`, draftData.draftOrder[0]);
-      
+
       const currentPickObj = draftData.draftOrder.find(pick => pick.dataValues.currentPick);
       console.log(`- Current pick found: ${!!currentPickObj}`);
       console.log(`- Current pick already has player: ${currentPickObj?.playerId ? 'YES' : 'NO'}`);
-      
+
       if (currentPickObj) {
         console.log(`- Current pick details:`, {
           id: currentPickObj.id,
@@ -212,55 +212,55 @@ class DraftManagementJob {
           fullObject: currentPickObj
         });
       }
-      
+
       if (!currentPickObj || currentPickObj.playerId) {
         console.log('No current pick found or pick already made');
         return;
       }
-      
+
       // Double-check if draft is already complete
       if (draftData.draft.complete) {
         console.log('Draft is already complete, skipping auto-pick');
         return;
       }
-      
+
       // Get available players - now correctly filtered by liveDraftData
       const availablePlayers = draftData.availablePlayers;
       if (availablePlayers.length === 0) {
         console.log('No available players for auto pick - all players are already assigned to teams');
         return;
       }
-      
+
       console.log(`Found ${availablePlayers.length} truly available players for auto pick`);
-      
+
       const randomPlayer = availablePlayers[Math.floor(Math.random() * availablePlayers.length)];
-      console.log(`Auto-picking player: ${randomPlayer.firstName} ${randomPlayer.lastName} (ID: ${randomPlayer.id})`);
+      console.log(`Auto-picking player: ${randomPlayer.firstName} ${randomPlayer.lastName} (ID: ${randomPlayer.playerId})`);
       console.log(`Random player full object:`, randomPlayer);
-      
+
       // Create a mock websocket object for the auto pick
       const mockWs = {
-        send: () => {}, // Mock send function
+        send: () => { }, // Mock send function
         leagueId: leagueId,
         myTeam: {
           teamId: currentPickObj.teamId,
           ownerId: currentPickObj.team?.ownerId || currentPickObj.team?.owner?.userId
         }
       };
-      
+
       console.log(`Mock WS object:`, {
         leagueId: mockWs.leagueId,
         myTeam: mockWs.myTeam
       });
-      
+
       console.log(`About to call handlePick with:`, {
-        pickId: currentPickObj.id,
+        pickId: currentPickObj.draftPickId,
         pickNumber: currentPickObj.pickNumber,
         teamId: currentPickObj.teamId,
-        playerId: randomPlayer.id,
+        playerId: randomPlayer.playerId,
         playerName: `${randomPlayer.firstName} ${randomPlayer.lastName}`,
         auto: true
       });
-      
+
       // Make the auto pick
       await handlePick({
         ws: mockWs,
@@ -271,12 +271,12 @@ class DraftManagementJob {
         },
         broadcastToLeague,
         clearDraftTimer: this.clearDraftTimer.bind(this),
-        startDraftTimer: this.startDraftTimer.bind(this),        
+        startDraftTimer: this.startDraftTimer.bind(this),
         clientsByLeague: new Map() // Empty map since this is auto pick
       });
-      
+
       console.log(`handlePick completed for auto-pick. Checking database state...`);
-      
+
       // Log the state after the pick to verify it worked
       try {
         const updatedDraftData = await liveDraftData(leagueId);
@@ -292,7 +292,7 @@ class DraftManagementJob {
       } catch (verifyError) {
         console.error('Error verifying pick results:', verifyError);
       }
-      
+
       // Broadcast that an auto pick was made
       broadcastToLeague(leagueId, {
         type: 'auto-pick-made',
@@ -305,7 +305,7 @@ class DraftManagementJob {
 
       // Don't send push notification here - the pick handler will handle
       // notifying the next user if there is one
-      
+
     } catch (error) {
       console.error('Error in makeAutoPick:', error);
       // If the error is about player already being assigned, log it but don't throw
@@ -328,7 +328,7 @@ class DraftManagementJob {
       // Look for drafts starting in 4-6 minutes (1 minute tolerance window)
       const fourMinutesFromNow = new Date(now.getTime() + (4 * 60 * 1000));
       const sixMinutesFromNow = new Date(now.getTime() + (6 * 60 * 1000));
-      
+
       const upcomingDrafts = await Draft.findAll({
         where: {
           startDate: {
@@ -360,7 +360,7 @@ class DraftManagementJob {
 
       for (const draft of upcomingDrafts) {
         const notificationKey = `${draft.leagueId}_${draft.startDate.getTime()}`;
-        
+
         // Skip if we've already sent notifications for this draft
         if (draftNotificationsSent.has(notificationKey)) {
           console.log(`Skipping draft ${draft.leagueId} - notifications already sent with key: ${notificationKey}`);
@@ -369,23 +369,23 @@ class DraftManagementJob {
 
         console.log(`Sending 5-minute draft notifications for league ${draft.leagueId} (starting at ${draft.startDate})`);
         console.log(`Draft object:`, JSON.stringify(draft, null, 2));
-        
+
         // Send notifications to all users in the league
         const notificationPromises = [];
-        
+
         if (draft.league?.teams) {
           for (const team of draft.league.teams) {
             if (team.owner?.userId) {
               console.log(`Processing notifications for user ${team.owner.userId} (${team.owner.email}) in league ${draft.leagueId}`);
-              
+
               // Send push notification
               const pushPromise = sendDraftStartingSoonNotification(team.owner.userId, draft.leagueId)
                 .catch(err => console.error(`Failed to send push notification to user ${team.owner.userId}:`, err));
-              
+
               // Send email notification
               const emailPromise = this.sendDraftStartingSoonEmail(team.owner, draft)
                 .catch(err => console.error(`Failed to send email to user ${team.owner.userId}:`, err));
-              
+
               notificationPromises.push(pushPromise, emailPromise);
             } else {
               console.log(`Skipping team ${team.teamId} - no owner or userId found`);
@@ -394,13 +394,13 @@ class DraftManagementJob {
         } else {
           console.log(`No teams found for league ${draft.leagueId}`);
         }
-        
+
         // Wait for all notifications to be sent
         await Promise.allSettled(notificationPromises);
-        
+
         // Mark this draft as having notifications sent
         draftNotificationsSent.add(notificationKey);
-        
+
         console.log(`Sent 5-minute notifications to ${draft.league?.teams?.length || 0} users for league ${draft.leagueId}`);
       }
     } catch (err) {
@@ -413,15 +413,15 @@ class DraftManagementJob {
    */
   static async sendDraftStartingSoonEmail(user, draft) {
     console.log(`Attempting to send draft starting soon email to user ${user.userId} (${user.email})`);
-    
+
     try {
       const { checkEmailPreference } = require('../helpers/emailUtils');
-      
+
       // Check if user has enabled draft notifications
       console.log(`Checking email preferences for user ${user.userId}`);
       const emailCheck = await checkEmailPreference(user.userId, 'draftNotifications');
       console.log(`Email preference check result for user ${user.userId}:`, emailCheck);
-      
+
       if (!emailCheck.canSend) {
         console.log(`Email not sent to user ${user.userId} - email preferences disabled`);
         return false;
@@ -429,20 +429,20 @@ class DraftManagementJob {
 
       const FormData = require("form-data");
       const Mailgun = require("mailgun.js");
-      
+
       // Check if required environment variables are set
       if (!process.env.MAILGUN_KEY) {
         console.error(`MAILGUN_KEY environment variable not set for user ${user.userId}`);
         return false;
       }
-      
+
       if (!process.env.MAILGUN_DOMAIN) {
         console.error(`MAILGUN_DOMAIN environment variable not set for user ${user.userId}`);
         return false;
       }
-      
+
       console.log(`Using Mailgun domain: ${process.env.MAILGUN_DOMAIN}`);
-      
+
       const mailgun = new Mailgun(FormData);
       const mg = mailgun.client({
         username: 'api',
@@ -475,7 +475,7 @@ class DraftManagementJob {
       };
 
       console.log(`Sending draft starting soon email to ${user.email} with template data:`, templateData);
-      
+
       const response = await mg.messages.create(process.env.MAILGUN_DOMAIN, emailData);
       console.log(`Draft starting soon email sent to ${user.email}: ${response.id}`);
       return true;
@@ -524,7 +524,7 @@ class DraftManagementJob {
       for (const draft of incompleteDrafts) {
         try {
           const draftData = await liveDraftData(draft.leagueId);
-          
+
           // Check if this is the final pick scenario
           if (await this.isFinalPickScenario(draftData)) {
             console.log(`Final pick scenario detected for league ${draft.leagueId} - making auto-pick`);
@@ -545,33 +545,33 @@ class DraftManagementJob {
   static async isFinalPickScenario(draftData) {
     // Count remaining picks
     const remainingPicks = draftData.draftOrder.filter(pick => !pick.playerId);
-    
+
     // Double-check available players with database verification using a single query
     const playerIds = draftData.availablePlayers.map(player => player.playerId);
-    
+
     // Get all existing assignments for these players in one query
     const existingAssignments = await PlayerTeam.findAll({
-      where: { 
+      where: {
         playerId: {
           [Op.in]: playerIds
         }
       },
       attributes: ['playerId']
     });
-    
+
     // Create a set of assigned player IDs for quick lookup
     const assignedPlayerIds = new Set(existingAssignments.map(assignment => assignment.playerId));
-    
+
     // Count players that are actually available (not assigned)
     const actuallyAvailablePlayers = playerIds.filter(playerId => !assignedPlayerIds.has(playerId)).length;
-    
+
     // Check if there's exactly one pick left and exactly one player left
     const isFinalScenario = remainingPicks.length === 1 && actuallyAvailablePlayers === 1;
-    
+
     if (isFinalScenario) {
       console.log(`Final pick scenario confirmed: ${remainingPicks.length} pick(s) remaining, ${actuallyAvailablePlayers} player(s) actually available`);
     }
-    
+
     return isFinalScenario;
   }
 }
